@@ -15,16 +15,20 @@ import {
   StructuredMemory,
   SpeakerProfile,
   ConversationSegment,
-  ConversationContextType
+  ConversationContextType,
+  MemoryVectorRecord,
+  AssistantChatMessage
 } from '../../models/session';
 
 const DB_NAME = 'MemoryAppDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORES = {
   SESSIONS: 'sessions',
   AUDIO_BLOBS: 'audio_blobs',
   SPEAKERS: 'speakers',
+  VECTORS: 'vectors',
+  ASSISTANT_CHATS: 'assistant_chats',
 } as const;
 
 export interface AudioBlobRecord {
@@ -69,6 +73,20 @@ class DatabaseService {
           speakerStore.createIndex('name', 'name', { unique: false });
           speakerStore.createIndex('isUser', 'isUser', { unique: false });
           speakerStore.createIndex('createdAt', 'createdAt', { unique: false });
+        }
+
+        // Store 4: Vector Embeddings (Phase 5 on-device semantic vector index)
+        if (!db.objectStoreNames.contains(STORES.VECTORS)) {
+          const vectorStore = db.createObjectStore(STORES.VECTORS, { keyPath: 'id' });
+          vectorStore.createIndex('sessionId', 'sessionId', { unique: false });
+          vectorStore.createIndex('unitType', 'unitType', { unique: false });
+          vectorStore.createIndex('createdAt', 'createdAt', { unique: false });
+        }
+
+        // Store 5: Assistant Chat History (Phase 5 conversational memory assistant threads)
+        if (!db.objectStoreNames.contains(STORES.ASSISTANT_CHATS)) {
+          const chatStore = db.createObjectStore(STORES.ASSISTANT_CHATS, { keyPath: 'id' });
+          chatStore.createIndex('createdAt', 'createdAt', { unique: false });
         }
       };
 
@@ -431,12 +449,28 @@ class DatabaseService {
   public async deleteSession(id: string): Promise<void> {
     const db = await this.getDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORES.SESSIONS, STORES.AUDIO_BLOBS], 'readwrite');
+      const stores = [STORES.SESSIONS, STORES.AUDIO_BLOBS];
+      if (db.objectStoreNames.contains(STORES.VECTORS)) {
+        stores.push(STORES.VECTORS);
+      }
+
+      const tx = db.transaction(stores, 'readwrite');
       const sessionStore = tx.objectStore(STORES.SESSIONS);
       const audioStore = tx.objectStore(STORES.AUDIO_BLOBS);
 
       sessionStore.delete(id);
       audioStore.delete(id);
+
+      if (db.objectStoreNames.contains(STORES.VECTORS)) {
+        const vectorStore = tx.objectStore(STORES.VECTORS);
+        const index = vectorStore.index('sessionId');
+        const req = index.getAllKeys(id);
+        req.onsuccess = () => {
+          for (const key of req.result) {
+            vectorStore.delete(key);
+          }
+        };
+      }
 
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(new Error(`Failed to delete session and audio: ${tx.error?.message}`));
@@ -848,6 +882,162 @@ class DatabaseService {
 
     await this.saveSession(updated);
     return updated;
+  }
+
+  // =========================================================================
+  // Phase 5: Vector Store & Assistant Chat History
+  // =========================================================================
+
+  /**
+   * Save a single vector embedding record
+   */
+  public async saveVectorRecord(record: MemoryVectorRecord): Promise<void> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readwrite');
+      const store = tx.objectStore(STORES.VECTORS);
+      const req = store.put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(new Error(`Failed to save vector record: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Save multiple vector records in a single transaction
+   */
+  public async saveVectorRecords(records: MemoryVectorRecord[]): Promise<void> {
+    if (!records || records.length === 0) return;
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readwrite');
+      const store = tx.objectStore(STORES.VECTORS);
+      for (const rec of records) {
+        store.put(rec);
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(new Error(`Failed to batch save vectors: ${tx.error?.message}`));
+    });
+  }
+
+  /**
+   * Get all vector records from the vector store
+   */
+  public async getAllVectorRecords(): Promise<MemoryVectorRecord[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readonly');
+      const store = tx.objectStore(STORES.VECTORS);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(new Error(`Failed to get vectors: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Get all vector records for a specific session
+   */
+  public async getVectorRecordsBySession(sessionId: string): Promise<MemoryVectorRecord[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readonly');
+      const store = tx.objectStore(STORES.VECTORS);
+      const index = store.index('sessionId');
+      const req = index.getAll(sessionId);
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(new Error(`Failed to get vectors for session: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Delete vector records for a specific session
+   */
+  public async deleteVectorRecordsBySession(sessionId: string): Promise<void> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readwrite');
+      const store = tx.objectStore(STORES.VECTORS);
+      const index = store.index('sessionId');
+      const req = index.getAllKeys(sessionId);
+      req.onsuccess = () => {
+        for (const key of req.result) {
+          store.delete(key);
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(new Error(`Failed to delete session vectors: ${tx.error?.message}`));
+    });
+  }
+
+  /**
+   * Clear all vector records (full vector re-index wipe)
+   */
+  public async clearAllVectorRecords(): Promise<void> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.VECTORS, 'readwrite');
+      const store = tx.objectStore(STORES.VECTORS);
+      const req = store.clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(new Error(`Failed to clear vectors: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Get vector index statistics
+   */
+  public async getVectorStats(): Promise<{ totalVectors: number; indexedSessions: number }> {
+    const vectors = await this.getAllVectorRecords();
+    const uniqueSessions = new Set(vectors.map(v => v.sessionId));
+    return {
+      totalVectors: vectors.length,
+      indexedSessions: uniqueSessions.size
+    };
+  }
+
+  /**
+   * Save an assistant chat message
+   */
+  public async saveAssistantMessage(message: AssistantChatMessage): Promise<void> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.ASSISTANT_CHATS, 'readwrite');
+      const store = tx.objectStore(STORES.ASSISTANT_CHATS);
+      const req = store.put(message);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(new Error(`Failed to save chat message: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Get all assistant chat messages in chronological order
+   */
+  public async getAssistantMessages(): Promise<AssistantChatMessage[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.ASSISTANT_CHATS, 'readonly');
+      const store = tx.objectStore(STORES.ASSISTANT_CHATS);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const list = req.result || [];
+        list.sort((a, b) => a.createdAt - b.createdAt);
+        resolve(list);
+      };
+      req.onerror = () => reject(new Error(`Failed to get chat messages: ${req.error?.message}`));
+    });
+  }
+
+  /**
+   * Clear assistant chat history
+   */
+  public async clearAssistantMessages(): Promise<void> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.ASSISTANT_CHATS, 'readwrite');
+      const store = tx.objectStore(STORES.ASSISTANT_CHATS);
+      const req = store.clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(new Error(`Failed to clear assistant messages: ${req.error?.message}`));
+    });
   }
 
   /**

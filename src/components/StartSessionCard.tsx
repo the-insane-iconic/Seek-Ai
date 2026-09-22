@@ -19,54 +19,53 @@ export const StartSessionCard: React.FC<StartSessionCardProps> = ({
 }) => {
   return (
     <section className="hero-action-section">
-      <h2 className="hero-title">Capture Everything Meaningful</h2>
-
-      {isRecording ? (
-        <button
-          className="btn-start-session active-recording"
-          onClick={onOpenActiveModal}
-          id="btn-active-session"
-        >
-          <div className="mic-glow">
-            <Radio size={20} />
-          </div>
-          <span>Session In Progress • {formatDuration(elapsedMs)}</span>
-        </button>
-      ) : (
-        <button
-          className="btn-start-session"
-          onClick={onStartSession}
-          id="btn-start-session"
-        >
-          <div className="mic-glow">
-            <Mic size={20} />
-          </div>
-          <span>Start Memory Session</span>
-        </button>
-      )}
-
-      {isRecording && (
-        <div 
-          className="active-session-strip" 
-          onClick={onOpenActiveModal}
-          style={{ marginTop: '16px' }}
-        >
-          <div className="active-strip-left">
-            <span className="status-dot" style={{ backgroundColor: '#ef4444' }}></span>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>
-              {isPaused ? 'Recording Paused' : 'Live Audio Recording'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="active-strip-time">{formatDuration(elapsedMs)}</span>
-            <ChevronRight size={16} color="#94a3b8" />
-          </div>
+      <div className="hero-card-inner">
+        <div className="hero-text-block">
+          <span className="hero-eyebrow">Personal Audio Intelligence</span>
+          <h2 className="hero-title">Capture Everything Meaningful</h2>
+          <p className="hero-desc">
+            Record meetings, lectures, and daily conversations into structured, searchable memories.
+          </p>
         </div>
-      )}
 
-      <div className="hero-subtitle">
-        <Shield size={13} color="#10b981" />
-        <span>100% On-Device Processing • Never Uploaded</span>
+        {isRecording ? (
+          <div className="recording-control-panel">
+            <button
+              className="btn-recording-action is-recording"
+              onClick={onOpenActiveModal}
+              id="btn-active-session"
+              aria-label="View Active Recording"
+            >
+              <div className="record-pulse-ring" />
+              <Radio size={22} className="record-icon" />
+              <div className="recording-info-col">
+                <span className="recording-status-title">
+                  {isPaused ? 'Recording Paused' : 'Listening & Recording'}
+                </span>
+                <span className="recording-timer-text">{formatDuration(elapsedMs)}</span>
+              </div>
+              <ChevronRight size={18} className="chevron-icon" />
+            </button>
+          </div>
+        ) : (
+          <div className="start-control-panel">
+            <button
+              className="btn-start-record"
+              onClick={onStartSession}
+              id="btn-start-session"
+            >
+              <div className="record-circle-icon">
+                <Mic size={22} />
+              </div>
+              <span>Start Memory Session</span>
+            </button>
+          </div>
+        )}
+
+        <div className="hero-privacy-note">
+          <Shield size={12} color="#71717a" />
+          <span>On-device processing • Complete privacy</span>
+        </div>
       </div>
     </section>
   );

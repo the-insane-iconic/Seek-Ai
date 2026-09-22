@@ -235,8 +235,60 @@ export interface StructuredMemory {
 }
 
 /**
- * Phase 2+ Extension Hook: Vector Embeddings for Semantic Search
+ * Phase 5: Semantic Vector Embeddings, Global Search & Conversational Assistant
  */
+export type MemoryEmbeddingUnitType = 
+  | 'summary' 
+  | 'conversation_segment' 
+  | 'transcript_chunk' 
+  | 'decision' 
+  | 'task' 
+  | 'question' 
+  | 'idea' 
+  | 'fact' 
+  | 'person' 
+  | 'topic';
+
+export interface MemoryVectorRecord {
+  id: string; // e.g. vec_{sessionId}_{unitType}_{unitId}
+  sessionId: string;
+  sessionTitle: string;
+  sessionDate: number;
+  unitType: MemoryEmbeddingUnitType;
+  unitId: string;
+  content: string;
+  vector: number[];
+  speakerLabel?: string;
+  timestampMs?: number;
+  metadata?: Record<string, any>;
+  createdAt: number;
+}
+
+export interface SearchResultItem {
+  record: MemoryVectorRecord;
+  similarityScore: number; // 0 to 1
+  matchType: 'semantic' | 'exact' | 'hybrid';
+  highlightSnippet: string;
+}
+
+export interface AssistantCitation {
+  sessionId: string;
+  sessionTitle: string;
+  unitType: MemoryEmbeddingUnitType;
+  snippet: string;
+  timestampMs?: number;
+  speakerLabel?: string;
+}
+
+export interface AssistantChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  citations?: AssistantCitation[];
+  createdAt: number;
+  isGenerating?: boolean;
+}
+
 export interface EmbeddingVector {
   vectorId: string;
   model: string;

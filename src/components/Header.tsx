@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, ShieldCheck, Database, Layers, Smartphone, Monitor, Users } from 'lucide-react';
+import { Mic, Search, HardDrive, Smartphone, Monitor } from 'lucide-react';
 import { formatFileSize } from '../models/session';
 
 interface HeaderProps {
@@ -8,8 +8,7 @@ interface HeaderProps {
   sessionCount: number;
   isFullWidth: boolean;
   onToggleFullWidth: () => void;
-  onOpenArchitecture: () => void;
-  onOpenSpeakerPrivacy?: () => void;
+  onQuickSearchClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,75 +17,57 @@ export const Header: React.FC<HeaderProps> = ({
   sessionCount,
   isFullWidth,
   onToggleFullWidth,
-  onOpenArchitecture,
-  onOpenSpeakerPrivacy,
+  onQuickSearchClick,
 }) => {
   return (
-    <>
-      {/* Desktop Helper Bar */}
-      <div className="desktop-bar">
-        <div className="desktop-bar-badge">
-          <ShieldCheck size={12} />
-          <span>PHASE 4 • SPEAKER & CONVERSATION SEGMENTS</span>
+    <header className="app-header">
+      <div className="brand-wrapper">
+        <div className={`brand-logo-icon ${isRecording ? 'is-recording' : ''}`}>
+          <Mic size={17} />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {onOpenSpeakerPrivacy && (
-            <button 
-              className="desktop-bar-btn" 
-              onClick={onOpenSpeakerPrivacy}
-              title="Open Speaker Profiles & Voice Privacy Manager"
-            >
-              <Users size={12} />
-              <span>Voice Privacy</span>
-            </button>
-          )}
-          <button 
-            className="desktop-bar-btn" 
-            onClick={onOpenArchitecture}
-            title="Inspect AI Pipeline Architecture"
-          >
-            <Layers size={12} />
-            <span>Architecture</span>
-          </button>
-          <button 
-            className="desktop-bar-btn" 
-            onClick={onToggleFullWidth}
-            title="Toggle Mobile / Fullscreen Container"
-          >
-            {isFullWidth ? <Smartphone size={12} /> : <Monitor size={12} />}
-            <span>{isFullWidth ? 'Mobile View' : 'Full Width'}</span>
-          </button>
+        <div className="brand-title-group">
+          <h1>Memory</h1>
         </div>
       </div>
 
-      <header className="app-header">
-        <div className="brand-wrapper">
-          <div className="brand-logo-icon">
-            <Mic size={18} />
-          </div>
-          <div className="brand-title-group">
-            <h1>Memory</h1>
-            <span>Personal AI System</span>
-          </div>
+      <div className="header-actions">
+        {/* Active status indicator */}
+        <div className={`status-pill ${isRecording ? 'recording' : ''}`}>
+          <span className="status-dot"></span>
+          <span>{isRecording ? 'Recording' : 'Ready'}</span>
         </div>
 
-        <div className="header-actions">
-          {/* Active status indicator */}
-          <div className={`status-pill ${isRecording ? 'recording' : ''}`}>
-            <span className="status-dot"></span>
-            <span>{isRecording ? 'Active Session' : 'Ready'}</span>
-          </div>
-
-          {/* Quick Storage Info Icon */}
+        {/* Quick Search trigger */}
+        {onQuickSearchClick && (
           <button 
             className="header-icon-btn" 
-            title={`Local Storage: ${formatFileSize(totalStorageBytes)} across ${sessionCount} sessions`}
-            onClick={onOpenArchitecture}
+            title="Search Memories"
+            onClick={onQuickSearchClick}
+            aria-label="Search"
           >
-            <Database size={15} />
+            <Search size={15} />
           </button>
+        )}
+
+        {/* Storage stats indicator */}
+        <div 
+          className="header-storage-pill" 
+          title={`Local Storage: ${formatFileSize(totalStorageBytes)} across ${sessionCount} sessions`}
+        >
+          <HardDrive size={12} />
+          <span>{formatFileSize(totalStorageBytes)}</span>
         </div>
-      </header>
-    </>
+
+        {/* Desktop width toggle (only on wide screens) */}
+        <button 
+          className="header-icon-btn desktop-only" 
+          onClick={onToggleFullWidth}
+          title={isFullWidth ? 'Switch to Mobile View' : 'Switch to Full Width'}
+          aria-label="Toggle Full Width"
+        >
+          {isFullWidth ? <Smartphone size={14} /> : <Monitor size={14} />}
+        </button>
+      </div>
+    </header>
   );
 };
