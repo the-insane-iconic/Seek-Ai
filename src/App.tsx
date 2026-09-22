@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   MemorySession, 
   generateUUID, 
-  generateDefaultSessionTitle 
+  generateDefaultSessionTitle,
+  StructuredMemory
 } from './models/session';
 import { databaseService } from './services/storage/database';
 import { audioFileManager } from './services/storage/audioFileManager';
 import { recordingService, RecordingState } from './services/audio/RecordingService';
 import { transcriptionService } from './services/transcription/TranscriptionService';
+import { memoryExtractionService } from './services/extraction/MemoryExtractionService';
 
 import { Header } from './components/Header';
 import { StartSessionCard } from './components/StartSessionCard';
@@ -30,12 +32,13 @@ export const App: React.FC = () => {
   const [frequencyData, setFrequencyData] = useState<Uint8Array | undefined>(undefined);
   const [activeModalOpen, setActiveModalOpen] = useState(false);
 
-  // Transcription Progress State
+  // Transcription & Extraction Progress State
   const [transcriptionProgress, setTranscriptionProgress] = useState<{
     status: string;
     percent?: number;
     message?: string;
   } | null>(null);
+  const [isExtractingMemory, setIsExtractingMemory] = useState(false);
 
   // Errors & Permissions
   const [errorType, setErrorType] = useState<string | null>(null);
@@ -240,9 +243,15 @@ export const App: React.FC = () => {
         }
       });
 
-      const updated = await databaseService.getSession(session.id);
+      let updated = await databaseService.getSession(session.id);
       if (updated) {
         setSelectedSession(updated);
+        // Automatically extract structured memory once transcription completes!
+        try {
+          await handleExtractMemory(updated);
+        } catch (e) {
+          console.warn('Auto-extraction non-fatal error:', e);
+        }
       }
       await refreshSessions();
     } catch (err: any) {
@@ -273,6 +282,85 @@ export const App: React.FC = () => {
   // Retry failed transcription
   const handleRetryTranscribe = async (session: MemorySession) => {
     await handleTranscribeSession(session, 'backend');
+  };
+
+  // Phase 3: Extract Structured Memory
+  const handleExtractMemory = async (session: MemorySession, providerId?: string) => {
+    setIsExtractingMemory(true);
+    try {
+      await memoryExtractionService.extractMemory(session, { providerId });
+      const updated = await databaseService.getSession(session.id);
+      if (updated) {
+        setSelectedSession(updated);
+      }
+      await refreshSessions();
+    } catch (err: any) {
+      console.error('Memory extraction error:', err);
+      const updated = await databaseService.getSession(session.id);
+      if (updated) {
+        setSelectedSession(updated);
+      }
+      await refreshSessions();
+    } finally {
+      setIsExtractingMemory(false);
+    }
+  };
+
+  // Phase 3: Toggle Task Completion
+  const handleToggleTask = async (sessionId: string, taskId: string, completed: boolean) => {
+    try {
+      const updated = await databaseService.updateMemoryTaskStatus(sessionId, taskId, completed);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to toggle task status:', err);
+    }
+  };
+
+  // Phase 3: Update Extracted Entity
+  const handleUpdateEntity = async (
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    itemId: string, 
+    fields: any
+  ) => {
+    try {
+      const updated = await databaseService.updateMemoryEntity(sessionId, category, itemId, fields);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to update entity:', err);
+    }
+  };
+
+  // Phase 3: Delete Extracted Entity
+  const handleDeleteEntity = async (
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    itemId: string
+  ) => {
+    try {
+      const updated = await databaseService.deleteMemoryEntity(sessionId, category, itemId);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to delete entity:', err);
+    }
+  };
+
+  // Phase 3: Add Custom Entity
+  const handleAddEntity = async (
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    item: any
+  ) => {
+    try {
+      const updated = await databaseService.addMemoryEntity(sessionId, category, item);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to add entity:', err);
+    }
   };
 
   // Quick Play/Pause preview from Session Card
@@ -369,7 +457,7 @@ export const App: React.FC = () => {
         onMinimize={() => setActiveModalOpen(false)}
       />
 
-      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts) */}
+      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts, Phase 3 Structured Memory) */}
       <SessionDetailModal
         session={selectedSession}
         isOpen={!!selectedSession}
@@ -380,6 +468,12 @@ export const App: React.FC = () => {
         onSaveTranscriptEdit={handleSaveTranscriptEdit}
         onRetryTranscribe={handleRetryTranscribe}
         transcriptionProgress={transcriptionProgress}
+        onExtractMemory={handleExtractMemory}
+        onToggleTask={handleToggleTask}
+        onUpdateEntity={handleUpdateEntity}
+        onDeleteEntity={handleDeleteEntity}
+        onAddEntity={handleAddEntity}
+        isExtractingMemory={isExtractingMemory}
       />
 
       {/* Architecture & Pipeline Modal */}

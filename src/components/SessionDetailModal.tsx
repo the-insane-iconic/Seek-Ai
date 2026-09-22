@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Edit3, Check, Trash2, Download, Copy, Sparkles, 
-  RotateCcw, AlertTriangle, Loader2, ArrowRight, CheckCircle2 
+  RotateCcw, AlertTriangle, Loader2, ArrowRight, CheckCircle2,
+  Brain, FileText, Settings2
 } from 'lucide-react';
 import { 
   MemorySession, 
   formatDuration, 
   formatSessionDate, 
   formatSessionTime, 
-  formatFileSize 
+  formatFileSize,
+  StructuredMemory 
 } from '../models/session';
 import { audioFileManager } from '../services/storage/audioFileManager';
 import { AudioPlayer } from './AudioPlayer';
 import { TranscriptView } from './TranscriptView';
+import { StructuredMemoryView } from './StructuredMemoryView';
 import { PrivacyConsentModal } from './PrivacyConsentModal';
 
 interface SessionDetailModalProps {
@@ -29,9 +32,17 @@ interface SessionDetailModalProps {
     percent?: number;
     message?: string;
   } | null;
+
+  // Phase 3 Memory Extraction Props
+  onExtractMemory: (session: MemorySession, providerId?: string) => Promise<void>;
+  onToggleTask: (sessionId: string, taskId: string, completed: boolean) => Promise<void>;
+  onUpdateEntity: (sessionId: string, category: keyof StructuredMemory, itemId: string, fields: any) => Promise<void>;
+  onDeleteEntity: (sessionId: string, category: keyof StructuredMemory, itemId: string) => Promise<void>;
+  onAddEntity: (sessionId: string, category: keyof StructuredMemory, item: any) => Promise<void>;
+  isExtractingMemory?: boolean;
 }
 
-type TabType = 'overview' | 'transcript' | 'phase3';
+type TabType = 'memory' | 'transcript' | 'technical';
 
 export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   session,
@@ -43,17 +54,23 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onSaveTranscriptEdit,
   onRetryTranscribe,
   transcriptionProgress,
+  onExtractMemory,
+  onToggleTask,
+  onUpdateEntity,
+  onDeleteEntity,
+  onAddEntity,
+  isExtractingMemory = false,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('memory');
   const [isDownloading, setIsDownloading] = useState(false);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
-  // Sync state between AudioPlayer and TranscriptView
+  // Sync state between AudioPlayer, TranscriptView, and StructuredMemoryView
   const [currentAudioTimeMs, setCurrentAudioTimeMs] = useState(0);
   const [seekTargetMs, setSeekTargetMs] = useState<number | null>(null);
 
@@ -62,11 +79,14 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       setEditedTitle(session.title);
       setIsEditingTitle(false);
       setIsDeleting(false);
-      // If session already has transcript, switch to transcript tab by default
-      if (session.transcript && session.transcript.status === 'completed') {
-        setActiveTab('transcript');
+
+      // Prioritize Structured Memory if extracted, else Transcript
+      if (session.structuredMemory && session.structuredMemory.status === 'completed') {
+        setActiveTab('memory');
+      } else if (session.transcript && session.transcript.status === 'completed') {
+        setActiveTab('memory'); // Show memory extraction CTA or memory tab
       } else {
-        setActiveTab('overview');
+        setActiveTab('technical');
       }
 
       // Fetch ObjectURL for audio playback
@@ -109,7 +129,6 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
   const handleSeekToSegment = (ms: number) => {
     setSeekTargetMs(ms);
-    // Reset seekTarget after slight delay to allow subsequent clicks on the same timestamp
     setTimeout(() => setSeekTargetMs(null), 50);
   };
 
@@ -117,8 +136,11 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const isTranscribing = transcript?.status === 'waiting' || 
                         transcript?.status === 'uploading' || 
                         transcript?.status === 'transcribing';
-  const isFailed = transcript?.status === 'failed';
-  const isCompleted = transcript?.status === 'completed';
+  const isTranscribeFailed = transcript?.status === 'failed';
+  const isTranscribeCompleted = transcript?.status === 'completed';
+
+  const structuredMemory = session.structuredMemory;
+  const hasStructuredMemory = structuredMemory && structuredMemory.status === 'completed';
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -133,7 +155,13 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               {formatDuration(session.durationMs)}
             </span>
-            {isCompleted && (
+            {hasStructuredMemory && (
+              <span className="status-badge-chip success">
+                <Brain size={11} />
+                <span>Memory Structured</span>
+              </span>
+            )}
+            {isTranscribeCompleted && !hasStructuredMemory && (
               <span className="status-badge-chip success">
                 <CheckCircle2 size={11} />
                 <span>Transcribed</span>
@@ -189,23 +217,27 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         {/* Navigation Tabs */}
         <div className="modal-tabs-wrapper">
           <button
-            className={`modal-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
+            className={`modal-tab-btn ${activeTab === 'memory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('memory')}
           >
-            Audio & Details
+            <Brain size={14} />
+            <span>Structured Memory</span>
+            {hasStructuredMemory && <span className="tab-dot-badge" />}
           </button>
           <button
             className={`modal-tab-btn ${activeTab === 'transcript' ? 'active' : ''}`}
             onClick={() => setActiveTab('transcript')}
           >
+            <FileText size={14} />
             <span>Transcript</span>
-            {isCompleted && <span className="tab-dot-badge" />}
+            {isTranscribeCompleted && <span className="tab-dot-badge" />}
           </button>
           <button
-            className={`modal-tab-btn ${activeTab === 'phase3' ? 'active' : ''}`}
-            onClick={() => setActiveTab('phase3')}
+            className={`modal-tab-btn ${activeTab === 'technical' ? 'active' : ''}`}
+            onClick={() => setActiveTab('technical')}
           >
-            Phase 3 AI Preview
+            <Settings2 size={14} />
+            <span>Audio & Info</span>
           </button>
         </div>
 
@@ -219,7 +251,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           />
         </div>
 
-        {/* Transcription Processing Alert / Progress Banner */}
+        {/* Transcription Processing Progress Banner */}
         {isTranscribing && (
           <div className="transcription-progress-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -242,8 +274,8 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* Transcription Failed Banner with Retry */}
-        {isFailed && (
+        {/* Transcription Failed Banner */}
+        {isTranscribeFailed && (
           <div className="transcription-failed-card">
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <AlertTriangle size={18} color="#ef4444" style={{ marginTop: '2px' }} />
@@ -267,11 +299,11 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* TAB 1: OVERVIEW & TECHNICAL METADATA */}
-        {activeTab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Quick Action: Transcribe if not transcribed */}
-            {!isCompleted && !isTranscribing && (
+        {/* TAB 1: STRUCTURED MEMORY (OVERVIEW) */}
+        {activeTab === 'memory' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* If audio not transcribed yet */}
+            {!isTranscribeCompleted && !isTranscribing && (
               <div className="transcribe-cta-banner">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="transcribe-cta-icon">
@@ -279,24 +311,131 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   </div>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
-                      Transcribe this Memory
+                      Transcribe to Structure Memory
                     </h4>
                     <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                      Convert spoken audio into searchable, timestamped text.
+                      First transcribe spoken audio into text so AI can extract decisions, tasks, and topics.
                     </p>
                   </div>
                 </div>
                 <button
                   className="btn-start-transcribe"
                   onClick={() => setPrivacyModalOpen(true)}
-                  id="btn-transcribe-now"
+                  id="btn-transcribe-first"
                 >
-                  <span>Transcribe</span>
+                  <span>Transcribe First</span>
                   <ArrowRight size={15} />
                 </button>
               </div>
             )}
 
+            {/* If transcribed but not extracted yet */}
+            {isTranscribeCompleted && !hasStructuredMemory && (
+              <div className="transcribe-cta-banner" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(99, 102, 241, 0.12) 100%)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="transcribe-cta-icon" style={{ background: 'rgba(16, 185, 129, 0.2)' }}>
+                    <Brain size={20} color="#34d399" />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
+                      Extract Structured Memory
+                    </h4>
+                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                      Analyze transcript to identify tasks, decisions, people, topics, and deadlines.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="btn-primary"
+                  onClick={() => onExtractMemory(session)}
+                  disabled={isExtractingMemory}
+                  id="btn-extract-structured-memory"
+                >
+                  <Sparkles size={15} className={isExtractingMemory ? 'spin-icon' : ''} />
+                  <span>{isExtractingMemory ? 'Extracting...' : 'Extract Memory'}</span>
+                </button>
+              </div>
+            )}
+
+            {/* If memory extraction is active */}
+            {isExtractingMemory && (
+              <div className="transcription-progress-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Loader2 size={18} className="spin-icon" color="#818cf8" />
+                  <div>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc' }}>
+                      Extracting Structured Memory...
+                    </strong>
+                    <p style={{ fontSize: '11px', color: '#a5b4fc', marginTop: '2px' }}>
+                      Identifying tasks, key decisions, people, dates, and ideas...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Structured Memory View */}
+            {hasStructuredMemory && structuredMemory && (
+              <StructuredMemoryView
+                memory={structuredMemory}
+                onSeekToMs={handleSeekToSegment}
+                onToggleTask={(taskId, completed) => onToggleTask(session.id, taskId, completed)}
+                onUpdateEntity={(category, itemId, fields) => onUpdateEntity(session.id, category, itemId, fields)}
+                onDeleteEntity={(category, itemId) => onDeleteEntity(session.id, category, itemId)}
+                onAddEntity={(category, item) => onAddEntity(session.id, category, item)}
+                onReExtract={() => onExtractMemory(session)}
+                isExtracting={isExtractingMemory}
+              />
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: FULL TRANSCRIPT */}
+        {activeTab === 'transcript' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {isTranscribeCompleted && transcript ? (
+              <TranscriptView
+                transcript={transcript}
+                currentAudioTimeMs={currentAudioTimeMs}
+                onSeekToMs={handleSeekToSegment}
+                onSaveEdit={async (newText) => {
+                  await onSaveTranscriptEdit(session.id, newText);
+                  // Option to re-extract memory after transcript change
+                  if (hasStructuredMemory) {
+                    onExtractMemory(session);
+                  }
+                }}
+              />
+            ) : isTranscribing ? (
+              <div className="transcript-empty-placeholder">
+                <Loader2 size={32} className="spin-icon" color="#818cf8" />
+                <h3>Generating Transcript...</h3>
+                <p>Speech-to-text engine is processing timestamps and text.</p>
+              </div>
+            ) : (
+              <div className="transcript-empty-placeholder">
+                <Sparkles size={36} color="#6366f1" />
+                <h3>No Transcript Yet</h3>
+                <p>
+                  Transcribe this session to review spoken words, jump to specific moments in audio, and edit text.
+                </p>
+                <button
+                  className="btn-primary"
+                  style={{ marginTop: '8px' }}
+                  onClick={() => setPrivacyModalOpen(true)}
+                  id="btn-tab-transcribe"
+                >
+                  <Sparkles size={16} />
+                  <span>Start Transcription</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: TECHNICAL DETAILS & AUDIO FILE INFO */}
+        {activeTab === 'technical' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Metadata Grid */}
             <div className="metadata-grid">
               <div className="meta-field">
@@ -346,136 +485,66 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* TAB 2: TRANSCRIPT VIEW */}
-        {activeTab === 'transcript' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {isCompleted && transcript ? (
-              <TranscriptView
-                transcript={transcript}
-                currentAudioTimeMs={currentAudioTimeMs}
-                onSeekToMs={handleSeekToSegment}
-                onSaveEdit={(newText) => onSaveTranscriptEdit(session.id, newText)}
-              />
-            ) : isTranscribing ? (
-              <div className="transcript-empty-placeholder">
-                <Loader2 size={32} className="spin-icon" color="#818cf8" />
-                <h3>Generating Transcript...</h3>
-                <p>Speech-to-text engine is processing timestamps and text.</p>
+            {/* Actions Row */}
+            {isDeleting ? (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '12px',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <p style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 600 }}>
+                  Permanently delete this memory session, audio recording, and transcript?
+                </p>
+                <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  This cannot be undone. All data will be permanently purged from this device.
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    className="btn-danger" 
+                    style={{ flex: 1 }} 
+                    onClick={handleDeleteConfirm}
+                    id="btn-confirm-delete"
+                  >
+                    Yes, Delete Everything
+                  </button>
+                  <button 
+                    className="btn-secondary" 
+                    style={{ flex: 1 }} 
+                    onClick={() => setIsDeleting(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="transcript-empty-placeholder">
-                <Sparkles size={36} color="#6366f1" />
-                <h3>No Transcript Yet</h3>
-                <p>
-                  Transcribe this session to review spoken words, jump to specific moments in audio, and edit text.
-                </p>
+              <div className="modal-actions-row">
                 <button
-                  className="btn-primary"
-                  style={{ marginTop: '8px' }}
-                  onClick={() => setPrivacyModalOpen(true)}
-                  id="btn-tab-transcribe"
+                  className="btn-secondary"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  title="Download audio recording to device"
+                  id="btn-download-audio"
                 >
-                  <Sparkles size={16} />
-                  <span>Start Transcription</span>
+                  <Download size={15} />
+                  <span>{isDownloading ? 'Exporting...' : 'Export Audio'}</span>
+                </button>
+
+                <button
+                  className="btn-danger"
+                  onClick={() => setIsDeleting(true)}
+                  title="Delete session"
+                  id="btn-delete-session"
+                >
+                  <Trash2 size={15} />
+                  <span>Delete</span>
                 </button>
               </div>
             )}
-          </div>
-        )}
-
-        {/* TAB 3: PHASE 3 AI PREVIEW */}
-        {activeTab === 'phase3' && (
-          <div className="phase-preview-card">
-            <div className="phase-preview-header">
-              <span className="phase-preview-title">Next: Phase 3 AI Pipeline</span>
-              <span className="phase-tag">ROADMAP</span>
-            </div>
-            <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
-              With Phase 2 speech-to-text completed, Phase 3 will analyze these transcripts to extract:
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '11px' }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Speaker Labels</span>
-                <p style={{ color: '#64748b', marginTop: '3px' }}>Identify voices and speakers</p>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Action Items</span>
-                <p style={{ color: '#64748b', marginTop: '3px' }}>Automatic task detection</p>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Decisions</span>
-                <p style={{ color: '#64748b', marginTop: '3px' }}>Key choices and agreements</p>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Semantic Search</span>
-                <p style={{ color: '#64748b', marginTop: '3px' }}>Vector query memory recall</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete confirmation or action buttons */}
-        {isDeleting ? (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '12px',
-            padding: '14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <p style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 600 }}>
-              Permanently delete this memory session, audio recording, and transcript?
-            </p>
-            <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-              This cannot be undone. All data will be permanently purged from this device.
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                className="btn-danger" 
-                style={{ flex: 1 }} 
-                onClick={handleDeleteConfirm}
-                id="btn-confirm-delete"
-              >
-                Yes, Delete Everything
-              </button>
-              <button 
-                className="btn-secondary" 
-                style={{ flex: 1 }} 
-                onClick={() => setIsDeleting(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="modal-actions-row">
-            {/* Download audio */}
-            <button
-              className="btn-secondary"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              title="Download audio recording to device"
-              id="btn-download-audio"
-            >
-              <Download size={15} />
-              <span>{isDownloading ? 'Exporting...' : 'Export Audio'}</span>
-            </button>
-
-            {/* Delete session */}
-            <button
-              className="btn-danger"
-              onClick={() => setIsDeleting(true)}
-              title="Delete session"
-              id="btn-delete-session"
-            >
-              <Trash2 size={15} />
-              <span>Delete</span>
-            </button>
           </div>
         )}
 

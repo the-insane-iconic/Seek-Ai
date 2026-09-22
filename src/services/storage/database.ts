@@ -8,7 +8,7 @@
  * (e.g. 'transcripts', 'speakers', 'embeddings') cleanly.
  */
 
-import { MemorySession, TranscriptData, TranscriptionStatus } from '../../models/session';
+import { MemorySession, TranscriptData, TranscriptionStatus, StructuredMemory } from '../../models/session';
 
 const DB_NAME = 'MemoryAppDB';
 const DB_VERSION = 1;
@@ -225,6 +225,185 @@ class DatabaseService {
     const updated: MemorySession = {
       ...session,
       transcript: updatedTranscript,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Associate or update complete structured memory data for a session
+   */
+  public async updateSessionStructuredMemory(id: string, memory: StructuredMemory): Promise<MemorySession> {
+    const session = await this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found with id: ${id}`);
+    }
+
+    const updated: MemorySession = {
+      ...session,
+      structuredMemory: memory,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Toggle completion state of a specific extracted task
+   */
+  public async updateMemoryTaskStatus(sessionId: string, taskId: string, completed: boolean): Promise<MemorySession> {
+    const session = await this.getSession(sessionId);
+    if (!session || !session.structuredMemory) {
+      throw new Error(`Session or structured memory not found for id: ${sessionId}`);
+    }
+
+    const tasks = session.structuredMemory.tasks.map(t => 
+      t.id === taskId ? { ...t, completed, isUserEdited: true } : t
+    );
+
+    const updatedMemory: StructuredMemory = {
+      ...session.structuredMemory,
+      tasks,
+      isUserEdited: true
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      structuredMemory: updatedMemory,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Update an extracted item in any category (Decision, Topic, Person, etc.)
+   */
+  public async updateMemoryEntity(
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    itemId: string, 
+    updatedFields: Record<string, any>
+  ): Promise<MemorySession> {
+    const session = await this.getSession(sessionId);
+    if (!session || !session.structuredMemory) {
+      throw new Error(`Session or structured memory not found for id: ${sessionId}`);
+    }
+
+    const list = (session.structuredMemory as any)[category];
+    if (!Array.isArray(list)) {
+      throw new Error(`Category ${String(category)} is not an array entity in StructuredMemory`);
+    }
+
+    const updatedList = list.map((item: any) => 
+      item.id === itemId ? { ...item, ...updatedFields, isUserEdited: true } : item
+    );
+
+    const updatedMemory: StructuredMemory = {
+      ...session.structuredMemory,
+      [category]: updatedList,
+      isUserEdited: true
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      structuredMemory: updatedMemory,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Delete an extracted item from a category
+   */
+  public async deleteMemoryEntity(
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    itemId: string
+  ): Promise<MemorySession> {
+    const session = await this.getSession(sessionId);
+    if (!session || !session.structuredMemory) {
+      throw new Error(`Session or structured memory not found for id: ${sessionId}`);
+    }
+
+    const list = (session.structuredMemory as any)[category];
+    if (!Array.isArray(list)) {
+      throw new Error(`Category ${String(category)} is not an array entity in StructuredMemory`);
+    }
+
+    const updatedList = list.filter((item: any) => item.id !== itemId);
+
+    const updatedMemory: StructuredMemory = {
+      ...session.structuredMemory,
+      [category]: updatedList,
+      isUserEdited: true
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      structuredMemory: updatedMemory,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Add a user-created entity to a category
+   */
+  public async addMemoryEntity(
+    sessionId: string, 
+    category: keyof StructuredMemory, 
+    item: Record<string, any>
+  ): Promise<MemorySession> {
+    const session = await this.getSession(sessionId);
+    if (!session) {
+      throw new Error(`Session not found with id: ${sessionId}`);
+    }
+
+    const memory: StructuredMemory = session.structuredMemory || {
+      id: `mem_${sessionId}`,
+      sessionId,
+      status: 'completed',
+      people: [],
+      topics: [],
+      keyPoints: [],
+      questions: [],
+      ideas: [],
+      decisions: [],
+      tasks: [],
+      commitments: [],
+      dates: [],
+      events: [],
+      facts: [],
+      extractedAt: Date.now(),
+      modelUsed: 'user-created',
+      isUserEdited: true
+    };
+
+    const list = (memory as any)[category] || [];
+    const newItem = {
+      ...item,
+      id: item.id || `custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      isUserCreated: true
+    };
+
+    const updatedMemory: StructuredMemory = {
+      ...memory,
+      [category]: [...list, newItem],
+      isUserEdited: true
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      structuredMemory: updatedMemory,
       updatedAt: Date.now()
     };
 

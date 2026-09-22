@@ -61,31 +61,138 @@ export interface SpeakerProfile {
   avatarColor?: string;
 }
 
-/**
- * Phase 2+ Extension Hook: Structured Memory & Action Items
- */
-export interface StructuredMemory {
-  topics: string[];
-  decisions: string[];
-  actionItems: {
-    id: string;
-    task: string;
-    dueDate?: string;
-    completed: boolean;
-  }[];
-  keyFacts: string[];
-  sentiment?: 'positive' | 'neutral' | 'reflective' | 'urgent';
+export type ExtractionStatus = 'idle' | 'extracting' | 'completed' | 'failed';
+
+export interface MemoryPerson {
+  id: string;
+  name: string;
+  role?: string;
+  mentionCount: number;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryTopic {
+  id: string;
+  name: string;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryKeyPoint {
+  id: string;
+  point: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryQuestion {
+  id: string;
+  question: string;
+  status: 'open' | 'answered';
+  answer?: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryIdea {
+  id: string;
+  idea: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryDecision {
+  id: string;
+  decision: string;
+  context?: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryTask {
+  id: string;
+  task: string;
+  assignee?: string;
+  dueDate?: string;
+  completed: boolean;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryCommitment {
+  id: string;
+  commitment: string;
+  fromPerson?: string;
+  toPerson?: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryDateDeadline {
+  id: string;
+  date: string;
+  description: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryEvent {
+  id: string;
+  title: string;
+  dateOrTime?: string;
+  location?: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemoryFact {
+  id: string;
+  fact: string;
+  category?: string;
+  sourceTimestampMs?: number;
+  isUserEdited?: boolean;
+  isUserCreated?: boolean;
+}
+
+export interface MemorySummary {
+  oneLiner: string;
+  keyTakeaways: string[];
+  isUserEdited?: boolean;
 }
 
 /**
- * Phase 2+ Extension Hook: AI Summary & Synthesis
+ * Phase 3: Complete Structured Memory Model
  */
-export interface AISummary {
-  oneLiner: string;
-  bulletPoints: string[];
-  tags: string[];
+export interface StructuredMemory {
+  id: string;
+  sessionId: string;
+  status: ExtractionStatus;
+  summary?: MemorySummary;
+  people: MemoryPerson[];
+  topics: MemoryTopic[];
+  keyPoints: MemoryKeyPoint[];
+  questions: MemoryQuestion[];
+  ideas: MemoryIdea[];
+  decisions: MemoryDecision[];
+  tasks: MemoryTask[];
+  commitments: MemoryCommitment[];
+  dates: MemoryDateDeadline[];
+  events: MemoryEvent[];
+  facts: MemoryFact[];
+  extractedAt: number;
   modelUsed: string;
-  generatedAt: number;
+  error?: string;
+  isUserEdited?: boolean;
 }
 
 /**
@@ -119,7 +226,6 @@ export interface MemorySession {
   transcript?: TranscriptData;
   speakers?: SpeakerProfile[];
   structuredMemory?: StructuredMemory;
-  aiSummary?: AISummary;
   embeddings?: EmbeddingVector[];
 }
 
