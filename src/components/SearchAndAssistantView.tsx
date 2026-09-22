@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Search, MessageSquare, Send, Sparkles, X, Play, Clock, Tag, 
+  Search, Send, Sparkles, X, Play, Clock, Tag, 
   CheckCircle2, ArrowRight, Loader2, RotateCcw, Brain, CheckSquare, 
   HelpCircle, Lightbulb, FileText, User 
 } from 'lucide-react';

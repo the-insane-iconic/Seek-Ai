@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, HardDrive, Sparkles, Trash2, Edit3, 
+  ShieldCheck, Trash2, Edit3, 
   RotateCcw, Check, X, Users, Database, AlertTriangle 
 } from 'lucide-react';
 import { SpeakerProfile, formatFileSize, MemorySession } from '../models/session';

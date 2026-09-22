@@ -13,22 +13,29 @@ import { transcriptionService } from './services/transcription/TranscriptionServ
 import { memoryExtractionService } from './services/extraction/MemoryExtractionService';
 import { conversationSegmentationService } from './services/segmentation/ConversationSegmentationService';
 import { speakerDiarizationService } from './services/diarization/SpeakerDiarizationService';
+import { memoryVectorIndexService } from './services/search/MemoryVectorIndexService';
 
 import { Header } from './components/Header';
 import { StartSessionCard } from './components/StartSessionCard';
 import { ActiveRecordingModal } from './components/ActiveRecordingModal';
 import { SessionList } from './components/SessionList';
+import { SessionCard } from './components/SessionCard';
 import { SessionDetailModal } from './components/SessionDetailModal';
 import { PermissionsBanner } from './components/PermissionsBanner';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { SpeakerPrivacyModal } from './components/SpeakerPrivacyModal';
+import { BottomNav, AppNavTab } from './components/BottomNav';
+import { SearchAndAssistantView } from './components/SearchAndAssistantView';
+import { SettingsView } from './components/SettingsView';
 
 export const App: React.FC = () => {
   // Session State
   const [sessions, setSessions] = useState<MemorySession[]>([]);
   const [selectedSession, setSelectedSession] = useState<MemorySession | null>(null);
+  const [selectedSessionSeekMs, setSelectedSessionSeekMs] = useState<number | undefined>(undefined);
   const [totalStorageBytes, setTotalStorageBytes] = useState(0);
   const [globalSpeakerPrivacyOpen, setGlobalSpeakerPrivacyOpen] = useState(false);
+  const [activeNavTab, setActiveNavTab] = useState<AppNavTab>('capture');
 
   // Active Recording State
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -64,11 +71,25 @@ export const App: React.FC = () => {
       setSessions(list);
       const stats = await databaseService.getStorageStats();
       setTotalStorageBytes(stats.totalAudioBytes);
+
+      // Auto-index into vector store if first launch or unindexed
+      const vStats = await databaseService.getVectorStats();
+      if (vStats.totalVectors === 0 && list.length > 0) {
+        memoryVectorIndexService.reindexAllSessions(list).catch(err => {
+          console.warn('Background auto-indexing:', err);
+        });
+      }
+
       return list;
     } catch (err: any) {
       console.error('Failed to load sessions from database:', err);
       return [];
     }
+  };
+
+  const handleOpenSessionFromSearch = (session: MemorySession, seekToMs?: number) => {
+    setSelectedSessionSeekMs(seekToMs);
+    setSelectedSession(session);
   };
 
   useEffect(() => {
@@ -314,6 +335,8 @@ export const App: React.FC = () => {
       const updated = await databaseService.getSession(session.id);
       if (updated) {
         setSelectedSession(updated);
+        // Phase 5: Index structured memories into vector store
+        await memoryVectorIndexService.indexSession(updated);
       }
       await refreshSessions();
     } catch (err: any) {
@@ -507,47 +530,107 @@ export const App: React.FC = () => {
 
   return (
     <div className={`app-container ${isFullWidth ? 'full-width-mode' : ''}`}>
-      {/* App Header */}
+      {/* Clean Minimal App Header */}
       <Header
         isRecording={isRecordingActive}
         totalStorageBytes={totalStorageBytes}
         sessionCount={sessions.length}
         isFullWidth={isFullWidth}
         onToggleFullWidth={() => setIsFullWidth(!isFullWidth)}
-        onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
-        onOpenSpeakerPrivacy={() => setGlobalSpeakerPrivacyOpen(true)}
+        onQuickSearchClick={() => setActiveNavTab('search')}
       />
 
-      {/* Main Content Area */}
+      {/* Main Tabbed Content Area */}
       <main className="app-content">
-        {/* Permission / Hardware Alerts Banner */}
-        <PermissionsBanner
-          errorType={errorType}
-          errorMessage={errorMessage}
-          onRetry={handleStartSession}
-          onDismiss={() => {
-            setErrorType(null);
-            setErrorMessage(null);
-          }}
-        />
+        {/* Tab 1: Capture Studio */}
+        {activeNavTab === 'capture' && (
+          <div className="tab-pane-fade">
+            <PermissionsBanner
+              errorType={errorType}
+              errorMessage={errorMessage}
+              onRetry={handleStartSession}
+              onDismiss={() => {
+                setErrorType(null);
+                setErrorMessage(null);
+              }}
+            />
 
-        {/* Hero: Start / Active Memory Session Action Card */}
-        <StartSessionCard
-          isRecording={isRecordingActive}
-          isPaused={isPaused}
-          elapsedMs={elapsedMs}
-          onStartSession={handleStartSession}
-          onOpenActiveModal={() => setActiveModalOpen(true)}
-        />
+            <StartSessionCard
+              isRecording={isRecordingActive}
+              isPaused={isPaused}
+              elapsedMs={elapsedMs}
+              onStartSession={handleStartSession}
+              onOpenActiveModal={() => setActiveModalOpen(true)}
+            />
 
-        {/* Previous Sessions List & Aggregates */}
-        <SessionList
-          sessions={sessions}
-          onSelectSession={(s) => setSelectedSession(s)}
-          onPlayQuick={handleQuickPlay}
-          playingSessionId={quickPlayingId}
-        />
+            {sessions.length > 0 && (
+              <div className="recent-memories-quick-section">
+                <div className="quick-section-header">
+                  <span className="quick-section-title">Recent Memories</span>
+                  <button 
+                    className="view-all-link-btn"
+                    onClick={() => setActiveNavTab('memories')}
+                  >
+                    View All ({sessions.length}) →
+                  </button>
+                </div>
+                <div className="recent-cards-col">
+                  {sessions.slice(0, 2).map(s => (
+                    <SessionCard
+                      key={s.id}
+                      session={s}
+                      onSelect={(sess: MemorySession) => setSelectedSession(sess)}
+                      onPlayQuick={handleQuickPlay}
+                      isQuickPlaying={quickPlayingId === s.id}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Memories Library */}
+        {activeNavTab === 'memories' && (
+          <div className="tab-pane-fade">
+            <SessionList
+              sessions={sessions}
+              onSelectSession={(s) => setSelectedSession(s)}
+              onPlayQuick={handleQuickPlay}
+              playingSessionId={quickPlayingId}
+            />
+          </div>
+        )}
+
+        {/* Tab 3: Search & AI Assistant */}
+        {activeNavTab === 'search' && (
+          <div className="tab-pane-fade">
+            <SearchAndAssistantView
+              sessions={sessions}
+              onOpenSession={handleOpenSessionFromSearch}
+            />
+          </div>
+        )}
+
+        {/* Tab 4: Settings & Privacy */}
+        {activeNavTab === 'settings' && (
+          <div className="tab-pane-fade">
+            <SettingsView
+              sessions={sessions}
+              totalStorageBytes={totalStorageBytes}
+              onRefreshData={refreshSessions}
+            />
+          </div>
+        )}
       </main>
+
+      {/* Docked Minimal Bottom Navigation Bar */}
+      <BottomNav
+        activeTab={activeNavTab}
+        onTabChange={setActiveNavTab}
+        isRecording={isRecordingActive}
+        sessionsCount={sessions.length}
+      />
 
       {/* Active Recording Modal / Sheet */}
       <ActiveRecordingModal
@@ -563,11 +646,14 @@ export const App: React.FC = () => {
         onMinimize={() => setActiveModalOpen(false)}
       />
 
-      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts, Phase 3 Structured Memory, Phase 4 Segments & Speakers) */}
+      {/* Session Details Modal (Playback, Metadata, Transcripts, Structured Memory, Segments & Speakers) */}
       <SessionDetailModal
         session={selectedSession}
         isOpen={!!selectedSession}
-        onClose={() => setSelectedSession(null)}
+        onClose={() => {
+          setSelectedSession(null);
+          setSelectedSessionSeekMs(undefined);
+        }}
         onRename={handleRenameSession}
         onDelete={handleDeleteSession}
         onTranscribe={handleTranscribeSession}
@@ -585,6 +671,7 @@ export const App: React.FC = () => {
         onSplitSegment={handleSplitSegment}
         onMergeSegments={handleMergeSegments}
         onUpdateContext={handleUpdateContext}
+        initialSeekMs={selectedSessionSeekMs}
       />
 
       {/* Architecture & Pipeline Modal */}

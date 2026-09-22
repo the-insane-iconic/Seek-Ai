@@ -267,6 +267,7 @@ export interface MemoryVectorRecord {
 export interface SearchResultItem {
   record: MemoryVectorRecord;
   similarityScore: number; // 0 to 1
+  score?: number; // alias for similarityScore
   matchType: 'semantic' | 'exact' | 'hybrid';
   highlightSnippet: string;
 }
@@ -277,13 +278,16 @@ export interface AssistantCitation {
   unitType: MemoryEmbeddingUnitType;
   snippet: string;
   timestampMs?: number;
+  audioTimestampMs?: number;
   speakerLabel?: string;
+  relevanceScore?: number;
 }
 
 export interface AssistantChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  answer?: string;
   citations?: AssistantCitation[];
   createdAt: number;
   isGenerating?: boolean;

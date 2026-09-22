@@ -69,42 +69,51 @@ export class MemoryVectorIndexService {
       content: `Session: ${session.title}. Context: ${session.contextType || 'General'}. ${session.customContext || ''}`,
       timestampMs: 0,
       metadata: { contextType: session.contextType }
-    });
-
-    // 2. Structured Memory Units (if extracted)
+    });    // 2. Structured Memory Units (if extracted)
     const mem = session.structuredMemory;
     if (mem) {
       // Summary
-      if (mem.summary?.oneLiner) {
+      if (typeof mem.summary === 'string' && (mem.summary as string).trim()) {
         units.push({
           unitType: 'summary',
           unitId: `summary_${session.id}`,
-          content: `${mem.summary.oneLiner}. Key takeaways: ${mem.summary.keyTakeaways?.join('; ')}`,
+          content: (mem.summary as string).trim(),
+          timestampMs: 0
+        });
+      } else if (mem.summary?.oneLiner) {
+        units.push({
+          unitType: 'summary',
+          unitId: `summary_${session.id}`,
+          content: `${mem.summary.oneLiner}. Key takeaways: ${mem.summary.keyTakeaways?.join('; ') || ''}`,
           timestampMs: 0
         });
       }
 
       // Decisions
       for (const d of mem.decisions || []) {
+        const ts = d.sourceTimestampMs ?? (d as any).timestampMs ?? 0;
         units.push({
           unitType: 'decision',
           unitId: d.id,
           content: `Decision: ${d.decision}. Agreed by: ${d.madeBy?.join(', ') || 'Team'}. Context: ${d.context || ''}`,
           speakerLabel: d.madeBy?.[0],
-          timestampMs: d.sourceTimestampMs || 0,
+          timestampMs: ts,
           metadata: { madeBy: d.madeBy }
         });
       }
 
       // Tasks
       for (const t of mem.tasks || []) {
+        const ts = t.sourceTimestampMs ?? (t as any).timestampMs ?? 0;
+        const assignee = t.assignedTo || (t as any).assignee || 'Unassigned';
+        const due = t.dueDate || (t as any).deadline || 'Unspecified';
         units.push({
           unitType: 'task',
           unitId: t.id,
-          content: `Task: ${t.task}. Assigned to: ${t.assignedTo || t.assignee || 'Unassigned'}. Due: ${t.dueDate || 'Unspecified'}`,
-          speakerLabel: t.assignedTo || t.assignee,
-          timestampMs: t.sourceTimestampMs || 0,
-          metadata: { assignedTo: t.assignedTo, dueDate: t.dueDate, completed: t.completed }
+          content: `Task: ${t.task}. Assigned to: ${assignee}. Due: ${due}`,
+          speakerLabel: assignee !== 'Unassigned' ? assignee : undefined,
+          timestampMs: ts,
+          metadata: { assignedTo: assignee, dueDate: due, completed: t.completed }
         });
       }
 
@@ -140,12 +149,24 @@ export class MemoryVectorIndexService {
         });
       }
 
+      // Key points
+      for (const kp of (mem as any).keyPoints || []) {
+        const ts = kp.sourceTimestampMs ?? kp.timestampMs ?? 0;
+        units.push({
+          unitType: 'summary',
+          unitId: kp.id || `kp_${Math.random()}`,
+          content: `Key Point: ${kp.point}`,
+          timestampMs: ts
+        });
+      }
+
       // Topics & People
       for (const top of mem.topics || []) {
+        const topicName = (top as any).topic || (top as any).name || '';
         units.push({
           unitType: 'topic',
           unitId: top.id,
-          content: `Topic discussed: ${top.name}`,
+          content: `Topic discussed: ${topicName}`,
           timestampMs: 0
         });
       }
@@ -158,14 +179,26 @@ export class MemoryVectorIndexService {
           timestampMs: p.sourceTimestampMs || 0
         });
       }
+
+      // Dates / Deadlines
+      const datesList = (mem as any).datesDeadlines || (mem as any).dates || [];
+      for (const dt of datesList) {
+        units.push({
+          unitType: 'decision',
+          unitId: dt.id || `date_${Math.random()}`,
+          content: `Date/Deadline: ${dt.date}. Event: ${dt.event || dt.description || ''}`,
+          timestampMs: dt.sourceTimestampMs ?? 0
+        });
+      }
     }
 
     // 3. Conversation Segments
-    for (const seg of session.conversationSegments || []) {
+    const allSegments = session.conversationSegments || (session as any).segments || [];
+    for (const seg of allSegments) {
       units.push({
         unitType: 'conversation_segment',
         unitId: seg.id,
-        content: `Conversation Segment: ${seg.title}. Type: ${seg.contextType}. Summary: ${seg.summary || ''}`,
+        content: `Conversation Segment: ${seg.title}. Type: ${seg.contextType || 'Discussion'}. Summary: ${seg.summary || ''}`,
         timestampMs: seg.startTimeMs,
         metadata: { contextType: seg.contextType, startTimeMs: seg.startTimeMs, endTimeMs: seg.endTimeMs }
       });
@@ -176,22 +209,43 @@ export class MemoryVectorIndexService {
     const chunkSize = 2;
     for (let i = 0; i < utterances.length; i += chunkSize) {
       const slice = utterances.slice(i, i + chunkSize);
-      const text = slice.map(u => `${u.speakerLabel || 'Speaker'}: ${u.text}`).join(' ');
+      const text = slice.map(u => `${u.speakerLabel || (u as any).speaker || 'Speaker'}: ${u.text}`).join(' ');
+      const first = slice[0];
+      const last = slice[slice.length - 1];
+      const startMs = first.startTimeMs ?? (first as any).startMs ?? 0;
+      const endMs = last.endTimeMs ?? (last as any).endMs ?? 0;
       units.push({
         unitType: 'transcript_chunk',
-        unitId: `chunk_${session.id}_${i}`,
+        unitId: `chunk_${i}`,
         content: text,
-        speakerLabel: slice[0]?.speakerLabel,
-        timestampMs: slice[0]?.startTimeMs || 0
+        speakerLabel: first.speakerLabel || (first as any).speaker,
+        timestampMs: startMs,
+        metadata: {
+          startIndex: i,
+          count: slice.length,
+          startTimeMs: startMs,
+          endTimeMs: endMs
+        }
+      });
+    }
+
+    // If transcript only has fullText / rawText and no segments
+    const transcriptText = session.transcript?.fullText || (session.transcript as any)?.rawText;
+    if (utterances.length === 0 && transcriptText) {
+      units.push({
+        unitType: 'transcript_chunk',
+        unitId: 'chunk_raw',
+        content: transcriptText,
+        timestampMs: 0
       });
     }
 
     if (units.length === 0) return 0;
 
-    // Vectorize all units
+    // Batch vectorization
     const provider = this.getActiveProvider();
-    const contents = units.map(u => u.content);
-    const vectors = await provider.embed(contents);
+    const textsToEmbed = units.map(u => u.content);
+    const vectors = await provider.embed(textsToEmbed);
 
     const records: MemoryVectorRecord[] = units.map((u, idx) => ({
       id: `vec_${session.id}_${u.unitType}_${u.unitId}`,
@@ -234,7 +288,7 @@ export class MemoryVectorIndexService {
     const provider = this.getActiveProvider();
     const [queryVector] = await provider.embed([query]);
 
-    const minScore = options?.minScore !== undefined ? options.minScore : 0.35;
+    const minScore = options?.minScore !== undefined ? options.minScore : 0.25;
     const scoredResults: SearchResultItem[] = [];
 
     for (const record of filtered) {
@@ -246,9 +300,11 @@ export class MemoryVectorIndexService {
       );
 
       if (score >= minScore) {
+        const rounded = Math.round(score * 100) / 100;
         scoredResults.push({
           record,
-          similarityScore: Math.round(score * 100) / 100,
+          similarityScore: rounded,
+          score: rounded,
           matchType,
           highlightSnippet: this.generateHighlightSnippet(record.content, query)
         });
@@ -258,7 +314,7 @@ export class MemoryVectorIndexService {
     // Sort descending by similarity score
     scoredResults.sort((a, b) => b.similarityScore - a.similarityScore);
 
-    const limit = options?.limit || 25;
+    const limit = options?.limit || options?.topK || 25;
     return scoredResults.slice(0, limit);
   }
 

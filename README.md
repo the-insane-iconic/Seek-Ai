@@ -45,10 +45,14 @@ $$\text{Audio} \longrightarrow \text{Segmented Conversation} \longrightarrow \te
   - Speaker-aware dialogue view: modern chat bubbles, avatars, speaker chips, inline speaker switcher, and timestamp audio sync.
   - Dedicated Voice Privacy & Identity Manager (`SpeakerPrivacyModal`): inspect profiles, toggle "This is Me", delete profiles, or full wipe.
 
-- **Phase 5: Semantic Search & Vector Intelligence** (Next)
-  - Vector embeddings and cross-session search.
-  - Conversational AI memory assistant.
-  - Natural language querying across tasks, decisions, and people.
+- **Phase 5: Global Semantic Search, Conversational Memory Assistant & Minimal UI** ✅
+  - Complete retrieval & synthesis pipeline:
+    $$\textbf{Capture} \longrightarrow \textbf{Transcribe} \longrightarrow \textbf{Understand} \longrightarrow \textbf{Store} \longrightarrow \textbf{Search} \longrightarrow \textbf{Answer}$$
+  - Cross-memory semantic similarity search: queries across transcripts, summaries, topics, people, decisions, tasks, questions, ideas, and conversation segments without requiring exact keyword matches.
+  - On-device 128-dimensional dense semantic vectorizer (`LocalSemanticVectorEngine`) with sub-word character n-gram hashing, semantic concept clusters, and hybrid cosine + BM25 lexical scoring.
+  - Conversational Memory Assistant (`MemoryAssistantService`): answers user questions using past session context with interactive clickable source citations that seek audio to the exact second.
+  - IndexedDB storage upgrades (`DB_VERSION = 3`): `STORES.VECTORS` for dense embeddings and `STORES.ASSISTANT_CHATS` for persistent Q&A threads with monotonic sequencing.
+  - Complete UI/UX redesign: clean minimal dark matte obsidian design (`#090a0d`), smooth round corners (`border-radius: 20px–24px` on cards, `9999px` on pills), zero neon purple/cyan glowing artifacts, and docked bottom navigation (`Capture`, `Memories`, `Search & AI`, `Settings`).
 
 ---
 

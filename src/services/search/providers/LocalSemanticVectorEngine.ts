@@ -85,10 +85,26 @@ export class LocalSemanticVectorEngine implements IEmbeddingProvider {
   }
 
   /**
-   * Embed multiple text chunks in batch
+   * Embed text or multiple text chunks in batch
    */
-  public async embed(texts: string[]): Promise<number[][]> {
-    return texts.map(t => this.generateVector(t));
+  public async embed(texts: string[]): Promise<number[][]>;
+  public async embed(text: string): Promise<number[]>;
+  public async embed(input: string | string[]): Promise<number[] | number[][]> {
+    if (typeof input === 'string') {
+      return this.generateVector(input);
+    }
+    return input.map(t => this.generateVector(t));
+  }
+
+  public async embedSingle(text: string): Promise<number[]> {
+    return this.generateVector(text);
+  }
+
+  /**
+   * Calculate cosine similarity between two normalized vectors
+   */
+  public cosineSimilarity(a: number[], b: number[]): number {
+    return LocalSemanticVectorEngine.cosineSimilarity(a, b);
   }
 
   /**
@@ -115,22 +131,28 @@ export class LocalSemanticVectorEngine implements IEmbeddingProvider {
   ): { score: number; matchType: 'semantic' | 'exact' | 'hybrid' } {
     const cosine = this.cosineSimilarity(queryVector, contentVector);
 
-    // Lexical token overlap
+    // Lexical token overlap with prefix matching for morphology (e.g. deploy -> deployment, decide -> decision)
     const qWords = (query.toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => w.length > 2);
-    const cWords = new Set((content.toLowerCase().match(/[a-z0-9]+/g) || []));
+    const cWords = Array.from(new Set((content.toLowerCase().match(/[a-z0-9]+/g) || [])));
 
     let matches = 0;
     for (const qw of qWords) {
-      if (cWords.has(qw)) matches++;
+      if (cWords.some(cw => cw === qw || (qw.length >= 4 && cw.startsWith(qw)) || (cw.length >= 4 && qw.startsWith(cw)))) {
+        matches++;
+      }
     }
     const lexicalScore = qWords.length > 0 ? matches / qWords.length : 0;
 
-    // Hybrid combination: 70% semantic vector, 30% lexical keyword
-    const hybridScore = (cosine * 0.7) + (lexicalScore * 0.3);
+    // Hybrid combination: incorporates semantic vector similarity and lexical match boost
+    let hybridScore = (cosine * 0.6) + (lexicalScore * 0.4);
+    if (lexicalScore > 0) {
+      hybridScore += lexicalScore * 0.2;
+    }
+    hybridScore = Math.max(cosine, hybridScore);
 
     let matchType: 'semantic' | 'exact' | 'hybrid' = 'semantic';
-    if (lexicalScore > 0.8 && cosine > 0.8) matchType = 'exact';
-    else if (lexicalScore > 0.3) matchType = 'hybrid';
+    if (lexicalScore >= 0.8 && cosine >= 0.6) matchType = 'exact';
+    else if (lexicalScore > 0.2) matchType = 'hybrid';
 
     return {
       score: Math.min(1.0, hybridScore),
@@ -150,3 +172,5 @@ export class LocalSemanticVectorEngine implements IEmbeddingProvider {
     return Math.abs(hash);
   }
 }
+
+export const localSemanticVectorEngine = new LocalSemanticVectorEngine();

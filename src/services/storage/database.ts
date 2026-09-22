@@ -449,7 +449,7 @@ class DatabaseService {
   public async deleteSession(id: string): Promise<void> {
     const db = await this.getDB();
     return new Promise((resolve, reject) => {
-      const stores = [STORES.SESSIONS, STORES.AUDIO_BLOBS];
+      const stores: string[] = [STORES.SESSIONS, STORES.AUDIO_BLOBS];
       if (db.objectStoreNames.contains(STORES.VECTORS)) {
         stores.push(STORES.VECTORS);
       }
@@ -948,6 +948,10 @@ class DatabaseService {
     });
   }
 
+  public async getVectorsBySessionId(sessionId: string): Promise<MemoryVectorRecord[]> {
+    return this.getVectorRecordsBySession(sessionId);
+  }
+
   /**
    * Delete vector records for a specific session
    */
@@ -1019,7 +1023,12 @@ class DatabaseService {
       const req = store.getAll();
       req.onsuccess = () => {
         const list = req.result || [];
-        list.sort((a, b) => a.createdAt - b.createdAt);
+        list.sort((a, b) => {
+          if (a.createdAt !== b.createdAt) {
+            return a.createdAt - b.createdAt;
+          }
+          return a.role === 'user' ? -1 : 1;
+        });
         resolve(list);
       };
       req.onerror = () => reject(new Error(`Failed to get chat messages: ${req.error?.message}`));
@@ -1038,6 +1047,10 @@ class DatabaseService {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(new Error(`Failed to clear assistant messages: ${req.error?.message}`));
     });
+  }
+
+  public async clearAssistantChats(): Promise<void> {
+    return this.clearAssistantMessages();
   }
 
   /**

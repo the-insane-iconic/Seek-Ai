@@ -11,12 +11,19 @@ import { memoryVectorIndexService } from '../search/MemoryVectorIndexService';
 
 export class MemoryAssistantService {
   private static instance: MemoryAssistantService;
+  private lastMessageTime = 0;
 
   public static getInstance(): MemoryAssistantService {
     if (!MemoryAssistantService.instance) {
       MemoryAssistantService.instance = new MemoryAssistantService();
     }
     return MemoryAssistantService.instance;
+  }
+
+  private getNextTimestamp(): number {
+    const now = Date.now();
+    this.lastMessageTime = Math.max(now, this.lastMessageTime + 1);
+    return this.lastMessageTime;
   }
 
   /**
@@ -31,12 +38,13 @@ export class MemoryAssistantService {
       throw new Error('Question cannot be empty');
     }
 
+    const userTs = this.getNextTimestamp();
     // 1. Save user query message to history
     const userMsg: AssistantChatMessage = {
-      id: `chat_user_${Date.now()}`,
+      id: `chat_user_${userTs}_${Math.random().toString(36).substring(2, 8)}`,
       role: 'user',
       content: trimmed,
-      createdAt: Date.now()
+      createdAt: userTs
     };
     await databaseService.saveAssistantMessage(userMsg);
 
@@ -48,12 +56,15 @@ export class MemoryAssistantService {
 
     // 3. If no relevant memories exist
     if (searchResults.length === 0) {
+      const msg = `I couldn't find any recorded memories or conversations directly discussing "${trimmed}". Try recording a session about this or checking another topic.`;
+      const replyTs = this.getNextTimestamp();
       const emptyReply: AssistantChatMessage = {
-        id: `chat_asst_${Date.now()}`,
+        id: `chat_asst_${replyTs}_${Math.random().toString(36).substring(2, 8)}`,
         role: 'assistant',
-        content: `I searched across your recorded memories, but couldn't find any conversations or notes directly discussing "${trimmed}". Try recording a session about this or checking another topic.`,
+        content: msg,
+        answer: msg,
         citations: [],
-        createdAt: Date.now()
+        createdAt: replyTs
       };
       await databaseService.saveAssistantMessage(emptyReply);
       return emptyReply;
@@ -66,7 +77,9 @@ export class MemoryAssistantService {
       unitType: res.record.unitType,
       snippet: res.record.content,
       timestampMs: res.record.timestampMs,
-      speakerLabel: res.record.speakerLabel
+      audioTimestampMs: res.record.timestampMs,
+      speakerLabel: res.record.speakerLabel,
+      relevanceScore: res.similarityScore
     }));
 
     // 5. Synthesize grounded answer
@@ -104,12 +117,14 @@ export class MemoryAssistantService {
       answerText = this.localSynthesize(trimmed, searchResults);
     }
 
+    const asstTs = this.getNextTimestamp();
     const assistantMsg: AssistantChatMessage = {
-      id: `chat_asst_${Date.now()}`,
+      id: `chat_asst_${asstTs}_${Math.random().toString(36).substring(2, 8)}`,
       role: 'assistant',
       content: answerText,
+      answer: answerText,
       citations,
-      createdAt: Date.now()
+      createdAt: asstTs
     };
 
     await databaseService.saveAssistantMessage(assistantMsg);
@@ -141,6 +156,12 @@ export class MemoryAssistantService {
       }
     }
 
+    // Case 2: Segment / context questions (e.g. "When did we have the lecture or meeting?")
+    if (segments.length > 0 && (qLower.includes('when') || qLower.includes('meeting') || qLower.includes('lecture') || qLower.includes('segment'))) {
+      const topSegment = segments[0].record;
+      return `Found conversation segment "${topSegment.title || 'Discussion'}" in "${topSegment.sessionTitle}": ${topSegment.content}`;
+    }
+
     // Case 2: Questions asking about tasks or commitments
     if (qLower.includes('task') || qLower.includes('promise') || qLower.includes('todo')) {
       if (tasks.length > 0) {
@@ -157,7 +178,13 @@ export class MemoryAssistantService {
       }
     }
 
-    // Case 4: General summary & dialogue synthesis
+    // Case 4: Discussion or summary questions
+    if (summaries.length > 0 && (qLower.includes('discuss') || qLower.includes('summary') || qLower.includes('about'))) {
+      const topSummary = summaries[0].record;
+      return `Here is what was discussed in "${topSummary.sessionTitle}": ${topSummary.content}`;
+    }
+
+    // Case 5: General dialogue synthesis
     const topResult = results[0].record;
     const secondaryResults = results.slice(1, 3).map(r => r.record.content);
 
@@ -167,6 +194,20 @@ export class MemoryAssistantService {
     }
 
     return answer;
+  }
+
+  /**
+   * Retrieve all chat messages from storage
+   */
+  public async getChatHistory(): Promise<AssistantChatMessage[]> {
+    return databaseService.getAssistantMessages();
+  }
+
+  /**
+   * Clear chat messages
+   */
+  public async clearChatHistory(): Promise<void> {
+    return databaseService.clearAssistantMessages();
   }
 }
 

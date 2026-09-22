@@ -15,6 +15,7 @@ export interface SearchOptions {
   unitTypes?: MemoryEmbeddingUnitType[];
   minScore?: number;
   limit?: number;
+  topK?: number;
   sessionId?: string;
 }
 

@@ -54,6 +54,7 @@ interface SessionDetailModalProps {
   onSplitSegment?: (sessionId: string, segmentId: string, splitTimeMs: number, newTitle?: string) => Promise<void>;
   onMergeSegments?: (sessionId: string, segmentId1: string, segmentId2: string) => Promise<void>;
   onUpdateContext?: (sessionId: string, contextType: ConversationContextType, customContext?: string) => Promise<void>;
+  initialSeekMs?: number;
 }
 
 type TabType = 'memory' | 'transcript' | 'speakers' | 'technical';
@@ -79,6 +80,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onSplitSegment,
   onMergeSegments,
   onUpdateContext,
+  initialSeekMs,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
@@ -109,8 +111,10 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       setIsDeleting(false);
       setEditingContext(false);
 
-      // Prioritize Structured Memory if extracted, else Transcript
-      if (session.structuredMemory && session.structuredMemory.status === 'completed') {
+      if (initialSeekMs !== undefined && initialSeekMs > 0) {
+        setSeekTargetMs(initialSeekMs);
+        setActiveTab('transcript');
+      } else if (session.structuredMemory && session.structuredMemory.status === 'completed') {
         setActiveTab('memory');
       } else if (session.transcript && session.transcript.status === 'completed') {
         setActiveTab('memory'); // Show memory extraction CTA or memory tab
@@ -125,7 +129,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     } else {
       setAudioUrl(null);
     }
-  }, [session]);
+  }, [session, initialSeekMs]);
 
   if (!isOpen || !session) return null;
 
