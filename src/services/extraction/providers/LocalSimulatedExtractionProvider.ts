@@ -20,7 +20,7 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
 
   async extract(
     transcriptText: string, 
-    segments: { id: string; startTimeMs: number; endTimeMs: number; text: string }[],
+    segments: { id: string; startTimeMs: number; endTimeMs: number; text: string; speakerId?: string; speakerLabel?: string }[],
     options?: ExtractionOptions
   ): Promise<Omit<StructuredMemory, 'id' | 'sessionId' | 'status' | 'extractedAt'>> {
     options?.onProgress?.('extracting', 25, 'Analyzing transcript entities...');
@@ -29,12 +29,16 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
     options?.onProgress?.('extracting', 60, 'Extracting decisions, tasks, and topics...');
     await new Promise(r => setTimeout(r, 400));
 
-    const sentences: { text: string; startTimeMs: number }[] = [];
+    const sentences: { text: string; startTimeMs: number; speakerLabel?: string }[] = [];
     for (const seg of segments) {
       const splitSentences = seg.text.split(/(?<=[.?!])\s+/);
       for (const s of splitSentences) {
         if (s.trim().length > 0) {
-          sentences.push({ text: s.trim(), startTimeMs: seg.startTimeMs });
+          sentences.push({ 
+            text: s.trim(), 
+            startTimeMs: seg.startTimeMs,
+            speakerLabel: seg.speakerLabel 
+          });
         }
       }
     }
@@ -80,14 +84,23 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
       }
     }
 
-    // 3. Decisions Made
+    // 3. Decisions Made (with speaker attribution)
     const decisions: MemoryDecision[] = [];
     const decisionKeywords = ['agreed', 'decided', 'will change', 'concluded', "let's use", 'settled on'];
     for (const s of sentences) {
       if (decisionKeywords.some(kw => s.text.toLowerCase().includes(kw))) {
+        const involvedSpeakers = new Set<string>();
+        if (s.speakerLabel) involvedSpeakers.add(s.speakerLabel);
+        for (const name of commonNames) {
+          if (new RegExp(`\\b${name}\\b`, 'i').test(s.text)) {
+            involvedSpeakers.add(name);
+          }
+        }
+
         decisions.push({
           id: `dec_${decisions.length}_${Date.now()}`,
           decision: s.text,
+          madeBy: involvedSpeakers.size > 0 ? Array.from(involvedSpeakers) : undefined,
           sourceTimestampMs: s.startTimeMs
         });
       }
@@ -97,11 +110,12 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
       decisions.push({
         id: `dec_0_${Date.now()}`,
         decision: 'Confirmed architecture decoupling and on-device privacy approach',
+        madeBy: segments[0]?.speakerLabel ? [segments[0].speakerLabel] : undefined,
         sourceTimestampMs: segments[0]?.startTimeMs || 0
       });
     }
 
-    // 4. Tasks & Action Items
+    // 4. Tasks & Action Items (with speaker assignment)
     const tasks: MemoryTask[] = [];
     const taskKeywords = ["let's", 'need to', 'should', "i'll", 'will send', 'todo', 'submit'];
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'tomorrow', 'next week'];
@@ -127,10 +141,23 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
           }
         }
 
+        let assignedTo = foundAssignee;
+        let assignedBy: string | undefined = undefined;
+
+        if (/^(i'll|i will)\b/i.test(s.text) && s.speakerLabel) {
+          assignedTo = s.speakerLabel;
+        } else if (foundAssignee && s.speakerLabel) {
+          assignedBy = s.speakerLabel;
+        } else if (!assignedTo && s.speakerLabel) {
+          assignedTo = s.speakerLabel;
+        }
+
         tasks.push({
           id: `task_${tasks.length}_${Date.now()}`,
           task: s.text.replace(/^(let's|we should|i'll)\s+/i, '').trim(),
-          assignee: foundAssignee,
+          assignee: assignedTo,
+          assignedTo: assignedTo,
+          assignedBy: assignedBy,
           dueDate: foundDate,
           completed: false,
           sourceTimestampMs: s.startTimeMs
@@ -138,20 +165,21 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
       }
     }
 
-    // 5. Questions
+    // 5. Questions (with askedBy attribution)
     const questions: MemoryQuestion[] = [];
     for (const s of sentences) {
       if (s.text.endsWith('?') || /^(what|how|why|when|who|should we)\b/i.test(s.text)) {
         questions.push({
           id: `q_${questions.length}_${Date.now()}`,
           question: s.text,
+          askedBy: s.speakerLabel,
           status: 'open',
           sourceTimestampMs: s.startTimeMs
         });
       }
     }
 
-    // 6. Ideas
+    // 6. Ideas (with proposedBy attribution)
     const ideas: MemoryIdea[] = [];
     const ideaKeywords = ['idea', 'suggest', 'what if', 'could explore', 'consider'];
     for (const s of sentences) {
@@ -159,18 +187,30 @@ export class LocalSimulatedExtractionProvider implements IMemoryExtractionProvid
         ideas.push({
           id: `idea_${ideas.length}_${Date.now()}`,
           idea: s.text,
+          proposedBy: s.speakerLabel,
           sourceTimestampMs: s.startTimeMs
         });
       }
     }
 
-    // 7. Commitments
+    // 7. Commitments (with fromPerson attribution)
     const commitments: MemoryCommitment[] = [];
     for (const s of sentences) {
       if (/^(i will|i promise|we committed to)\b/i.test(s.text)) {
+        let fromPerson = s.speakerLabel;
+        if (!fromPerson) {
+          for (const name of commonNames) {
+            if (new RegExp(`\\b${name}\\b`, 'i').test(s.text)) {
+              fromPerson = name;
+              break;
+            }
+          }
+        }
+
         commitments.push({
           id: `comm_${commitments.length}_${Date.now()}`,
           commitment: s.text,
+          fromPerson,
           sourceTimestampMs: s.startTimeMs
         });
       }

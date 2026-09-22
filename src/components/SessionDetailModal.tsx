@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Edit3, Check, Trash2, Download, Copy, Sparkles, 
   RotateCcw, AlertTriangle, Loader2, ArrowRight, CheckCircle2,
-  Brain, FileText, Settings2
+  Brain, FileText, Settings2, Users, ShieldCheck, Tag, ChevronDown
 } from 'lucide-react';
 import { 
   MemorySession, 
@@ -10,13 +10,20 @@ import {
   formatSessionDate, 
   formatSessionTime, 
   formatFileSize,
-  StructuredMemory 
+  StructuredMemory,
+  ConversationContextType,
+  formatContextLabel,
+  CONTEXT_LABELS,
+  getSpeakerColor,
+  getSpeakerDisplayName
 } from '../models/session';
 import { audioFileManager } from '../services/storage/audioFileManager';
 import { AudioPlayer } from './AudioPlayer';
 import { TranscriptView } from './TranscriptView';
 import { StructuredMemoryView } from './StructuredMemoryView';
 import { PrivacyConsentModal } from './PrivacyConsentModal';
+import { ConversationSegmentNavigator } from './ConversationSegmentNavigator';
+import { SpeakerPrivacyModal } from './SpeakerPrivacyModal';
 
 interface SessionDetailModalProps {
   session: MemorySession | null;
@@ -40,9 +47,16 @@ interface SessionDetailModalProps {
   onDeleteEntity: (sessionId: string, category: keyof StructuredMemory, itemId: string) => Promise<void>;
   onAddEntity: (sessionId: string, category: keyof StructuredMemory, item: any) => Promise<void>;
   isExtractingMemory?: boolean;
+
+  // Phase 4 Segmentation & Speaker Props
+  onRenameSpeaker?: (sessionId: string, speakerId: string, newName: string, isUser?: boolean) => Promise<void>;
+  onRenameSegment?: (sessionId: string, segmentId: string, newTitle: string, contextType: ConversationContextType) => Promise<void>;
+  onSplitSegment?: (sessionId: string, segmentId: string, splitTimeMs: number, newTitle?: string) => Promise<void>;
+  onMergeSegments?: (sessionId: string, segmentId1: string, segmentId2: string) => Promise<void>;
+  onUpdateContext?: (sessionId: string, contextType: ConversationContextType, customContext?: string) => Promise<void>;
 }
 
-type TabType = 'memory' | 'transcript' | 'technical';
+type TabType = 'memory' | 'transcript' | 'speakers' | 'technical';
 
 export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   session,
@@ -60,6 +74,11 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onDeleteEntity,
   onAddEntity,
   isExtractingMemory = false,
+  onRenameSpeaker,
+  onRenameSegment,
+  onSplitSegment,
+  onMergeSegments,
+  onUpdateContext,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
@@ -70,6 +89,15 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
+  // Phase 4 State
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
+  const [editingContext, setEditingContext] = useState(false);
+  const [speakerPrivacyModalOpen, setSpeakerPrivacyModalOpen] = useState(false);
+
+  const [speakerRenameId, setSpeakerRenameId] = useState<string | null>(null);
+  const [speakerRenameText, setSpeakerRenameText] = useState('');
+  const [speakerRenameIsUser, setSpeakerRenameIsUser] = useState(false);
+
   // Sync state between AudioPlayer, TranscriptView, and StructuredMemoryView
   const [currentAudioTimeMs, setCurrentAudioTimeMs] = useState(0);
   const [seekTargetMs, setSeekTargetMs] = useState<number | null>(null);
@@ -79,6 +107,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       setEditedTitle(session.title);
       setIsEditingTitle(false);
       setIsDeleting(false);
+      setEditingContext(false);
 
       // Prioritize Structured Memory if extracted, else Transcript
       if (session.structuredMemory && session.structuredMemory.status === 'completed') {
@@ -132,6 +161,14 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setTimeout(() => setSeekTargetMs(null), 50);
   };
 
+  const handleSaveSpeakerRename = async () => {
+    if (speakerRenameId && onRenameSpeaker) {
+      const name = speakerRenameIsUser ? 'You' : (speakerRenameText.trim() || 'Speaker');
+      await onRenameSpeaker(session.id, speakerRenameId, name, speakerRenameIsUser);
+      setSpeakerRenameId(null);
+    }
+  };
+
   const transcript = session.transcript;
   const isTranscribing = transcript?.status === 'waiting' || 
                         transcript?.status === 'uploading' || 
@@ -141,6 +178,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
   const structuredMemory = session.structuredMemory;
   const hasStructuredMemory = structuredMemory && structuredMemory.status === 'completed';
+  const sessionSpeakers = session.speakers || [];
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -155,6 +193,39 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               {formatDuration(session.durationMs)}
             </span>
+
+            {/* Context Selector Pill */}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="context-badge-btn"
+                onClick={() => setEditingContext(!editingContext)}
+                title="Change conversation context (Lecture, Meeting, Project discussion, etc.)"
+              >
+                <Tag size={11} />
+                <span>{formatContextLabel(session.contextType, session.customContext)}</span>
+                <ChevronDown size={10} />
+              </button>
+
+              {editingContext && (
+                <div className="context-select-dropdown">
+                  {Object.entries(CONTEXT_LABELS).map(([val, label]) => (
+                    <button
+                      key={val}
+                      className={`context-dropdown-item ${session.contextType === val ? 'selected' : ''}`}
+                      onClick={async () => {
+                        setEditingContext(false);
+                        if (onUpdateContext) {
+                          await onUpdateContext(session.id, val as ConversationContextType);
+                        }
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {hasStructuredMemory && (
               <span className="status-badge-chip success">
                 <Brain size={11} />
@@ -214,6 +285,27 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
+        {/* Phase 4: Conversation Segments Navigator Strip */}
+        {session.conversationSegments && session.conversationSegments.length > 0 && (
+          <ConversationSegmentNavigator
+            segments={session.conversationSegments}
+            activeSegmentId={activeSegmentId}
+            onSelectSegment={(id) => setActiveSegmentId(id)}
+            onSeekToMs={handleSeekToSegment}
+            currentAudioTimeMs={currentAudioTimeMs}
+            speakers={session.speakers}
+            onRenameSegment={async (segId, newTitle, cType) => {
+              if (onRenameSegment) await onRenameSegment(session.id, segId, newTitle, cType);
+            }}
+            onSplitSegment={async (segId, splitTimeMs, newTitle) => {
+              if (onSplitSegment) await onSplitSegment(session.id, segId, splitTimeMs, newTitle);
+            }}
+            onMergeSegments={async (s1, s2) => {
+              if (onMergeSegments) await onMergeSegments(session.id, s1, s2);
+            }}
+          />
+        )}
+
         {/* Navigation Tabs */}
         <div className="modal-tabs-wrapper">
           <button
@@ -229,8 +321,18 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             onClick={() => setActiveTab('transcript')}
           >
             <FileText size={14} />
-            <span>Transcript</span>
+            <span>Conversation</span>
             {isTranscribeCompleted && <span className="tab-dot-badge" />}
+          </button>
+          <button
+            className={`modal-tab-btn ${activeTab === 'speakers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('speakers')}
+          >
+            <Users size={14} />
+            <span>Speakers</span>
+            {sessionSpeakers.length > 0 && (
+              <span className="tab-count-pill">{sessionSpeakers.length}</span>
+            )}
           </button>
           <button
             className={`modal-tab-btn ${activeTab === 'technical' ? 'active' : ''}`}
@@ -390,34 +492,39 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* TAB 2: FULL TRANSCRIPT */}
+        {/* TAB 2: CONVERSATION DIALOGUE & TRANSCRIPT */}
         {activeTab === 'transcript' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {isTranscribeCompleted && transcript ? (
               <TranscriptView
                 transcript={transcript}
+                speakers={session.speakers}
+                conversationSegments={session.conversationSegments}
+                activeSegmentId={activeSegmentId}
                 currentAudioTimeMs={currentAudioTimeMs}
                 onSeekToMs={handleSeekToSegment}
                 onSaveEdit={async (newText) => {
                   await onSaveTranscriptEdit(session.id, newText);
-                  // Option to re-extract memory after transcript change
                   if (hasStructuredMemory) {
                     onExtractMemory(session);
                   }
                 }}
+                onRenameSpeaker={onRenameSpeaker ? async (spId, newName, isUser) => {
+                  await onRenameSpeaker(session.id, spId, newName, isUser);
+                } : undefined}
               />
             ) : isTranscribing ? (
               <div className="transcript-empty-placeholder">
                 <Loader2 size={32} className="spin-icon" color="#818cf8" />
-                <h3>Generating Transcript...</h3>
-                <p>Speech-to-text engine is processing timestamps and text.</p>
+                <h3>Generating Transcript & Diarizing...</h3>
+                <p>Speech-to-text and speaker identification engines are processing dialogue.</p>
               </div>
             ) : (
               <div className="transcript-empty-placeholder">
                 <Sparkles size={36} color="#6366f1" />
                 <h3>No Transcript Yet</h3>
                 <p>
-                  Transcribe this session to review spoken words, jump to specific moments in audio, and edit text.
+                  Transcribe this session to review spoken words, jump to specific moments in audio, and identify speakers.
                 </p>
                 <button
                   className="btn-primary"
@@ -433,7 +540,129 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* TAB 3: TECHNICAL DETAILS & AUDIO FILE INFO */}
+        {/* TAB 3: SPEAKERS & DIARIZATION */}
+        {activeTab === 'speakers' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                  Speakers ({sessionSpeakers.length})
+                </h3>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  Distinguish conversation turns, map identities, and assign "You".
+                </span>
+              </div>
+              <button
+                className="desktop-bar-btn"
+                onClick={() => setSpeakerPrivacyModalOpen(true)}
+                title="Manage all stored voice identities"
+              >
+                <ShieldCheck size={12} />
+                <span>Voice Privacy Manager</span>
+              </button>
+            </div>
+
+            {sessionSpeakers.length === 0 ? (
+              <div className="transcript-empty-placeholder" style={{ padding: '36px 16px' }}>
+                <Users size={32} color="#6366f1" />
+                <h3>No Speakers Diarized Yet</h3>
+                <p>
+                  Transcribe this session to separate speakers, assign turns, and identify who said what.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {sessionSpeakers.map((sp, idx) => {
+                  const isEditingThis = speakerRenameId === sp.id;
+                  const displayName = getSpeakerDisplayName(sp, `Speaker ${idx + 1}`);
+
+                  return (
+                    <div key={sp.id} className="speaker-profile-card">
+                      <div 
+                        className="person-avatar"
+                        style={{ backgroundColor: sp.avatarColor || getSpeakerColor(idx) }}
+                      >
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+
+                      {isEditingThis ? (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <input
+                            type="text"
+                            className="input-field-text"
+                            value={speakerRenameText}
+                            onChange={(e) => setSpeakerRenameText(e.target.value)}
+                            placeholder="Enter speaker name (e.g. Rahul, Sarah)"
+                            disabled={speakerRenameIsUser}
+                            autoFocus
+                          />
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={speakerRenameIsUser}
+                              onChange={(e) => setSpeakerRenameIsUser(e.target.checked)}
+                            />
+                            <span>This is me (The App Owner / "You")</span>
+                          </label>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button 
+                              className="btn-secondary" 
+                              style={{ padding: '4px 10px', fontSize: '11px' }}
+                              onClick={() => setSpeakerRenameId(null)}
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              className="btn-primary" 
+                              style={{ padding: '4px 10px', fontSize: '11px' }}
+                              onClick={handleSaveSpeakerRename}
+                            >
+                              Save Identification
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
+                              {displayName}
+                            </span>
+                            {sp.isUser && <span className="is-user-tag">YOU</span>}
+                            {sp.confidence !== undefined && (
+                              <span className="speaker-conf-tag">
+                                {Math.round(sp.confidence * 100)}% match
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                            Label: {sp.label} • {sp.name ? 'User Verified' : 'Tentative assignment'}
+                          </span>
+                        </div>
+                      )}
+
+                      {!isEditingThis && (
+                        <button
+                          className="section-add-btn"
+                          onClick={() => {
+                            setSpeakerRenameId(sp.id);
+                            setSpeakerRenameText(sp.name || (sp.isUser ? '' : sp.label));
+                            setSpeakerRenameIsUser(sp.isUser);
+                          }}
+                          title="Rename or identify this speaker"
+                        >
+                          <Edit3 size={12} />
+                          <span>Identify</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: TECHNICAL DETAILS & AUDIO FILE INFO */}
         {activeTab === 'technical' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Metadata Grid */}
@@ -557,6 +786,12 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             setPrivacyModalOpen(false);
             onTranscribe(session, providerId);
           }}
+        />
+
+        {/* Speaker Privacy & Voice Identity Manager Dialog */}
+        <SpeakerPrivacyModal
+          isOpen={speakerPrivacyModalOpen}
+          onClose={() => setSpeakerPrivacyModalOpen(false)}
         />
       </div>
     </div>

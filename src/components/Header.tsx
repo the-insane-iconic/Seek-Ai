@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, ShieldCheck, Database, Layers, Smartphone, Monitor } from 'lucide-react';
+import { Mic, ShieldCheck, Database, Layers, Smartphone, Monitor, Users } from 'lucide-react';
 import { formatFileSize } from '../models/session';
 
 interface HeaderProps {
@@ -9,6 +9,7 @@ interface HeaderProps {
   isFullWidth: boolean;
   onToggleFullWidth: () => void;
   onOpenArchitecture: () => void;
+  onOpenSpeakerPrivacy?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   isFullWidth,
   onToggleFullWidth,
   onOpenArchitecture,
+  onOpenSpeakerPrivacy,
 }) => {
   return (
     <>
@@ -25,9 +27,19 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="desktop-bar">
         <div className="desktop-bar-badge">
           <ShieldCheck size={12} />
-          <span>PHASE 1 • LOCAL SECURE FOUNDATION</span>
+          <span>PHASE 4 • SPEAKER & CONVERSATION SEGMENTS</span>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onOpenSpeakerPrivacy && (
+            <button 
+              className="desktop-bar-btn" 
+              onClick={onOpenSpeakerPrivacy}
+              title="Open Speaker Profiles & Voice Privacy Manager"
+            >
+              <Users size={12} />
+              <span>Voice Privacy</span>
+            </button>
+          )}
           <button 
             className="desktop-bar-btn" 
             onClick={onOpenArchitecture}

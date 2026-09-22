@@ -260,10 +260,15 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                     {task.task}
                   </span>
                   <div className="task-meta-row">
-                    {task.assignee && (
+                    {(task.assignedTo || task.assignee) && (
                       <span className="task-meta-tag assignee">
                         <User size={10} />
-                        <span>{task.assignee}</span>
+                        <span>Assigned to: {task.assignedTo || task.assignee}</span>
+                      </span>
+                    )}
+                    {task.assignedBy && (
+                      <span className="task-meta-tag assignee" style={{ background: 'rgba(129, 140, 248, 0.1)', color: '#a5b4fc' }}>
+                        <span>By: {task.assignedBy}</span>
                       </span>
                     )}
                     {task.dueDate && (
@@ -341,6 +346,14 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                     </span>
                     {dec.isUserEdited && <span className="edited-indicator-tag">Edited</span>}
                   </div>
+                  {dec.madeBy && dec.madeBy.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Made by:</span>
+                      {dec.madeBy.map((p, pIdx) => (
+                        <span key={pIdx} className="person-tag-pill">{p}</span>
+                      ))}
+                    </div>
+                  )}
                   {dec.context && (
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>{dec.context}</span>
                   )}
@@ -505,6 +518,11 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                   <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 500 }}>
                     "{q.question}"
                   </span>
+                  {q.askedBy && (
+                    <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 600 }}>
+                      Asked by: {q.askedBy}
+                    </span>
+                  )}
                   {q.sourceTimestampMs !== undefined && (
                     <button
                       className="timestamp-jump-btn"
@@ -536,6 +554,11 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                   <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 500 }}>
                     {idea.idea}
                   </span>
+                  {idea.proposedBy && (
+                    <span style={{ fontSize: '10px', color: '#eab308', fontWeight: 600 }}>
+                      Proposed by: {idea.proposedBy}
+                    </span>
+                  )}
                   {idea.sourceTimestampMs !== undefined && (
                     <button
                       className="timestamp-jump-btn"

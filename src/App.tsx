@@ -3,13 +3,16 @@ import {
   MemorySession, 
   generateUUID, 
   generateDefaultSessionTitle,
-  StructuredMemory
+  StructuredMemory,
+  ConversationContextType
 } from './models/session';
 import { databaseService } from './services/storage/database';
 import { audioFileManager } from './services/storage/audioFileManager';
 import { recordingService, RecordingState } from './services/audio/RecordingService';
 import { transcriptionService } from './services/transcription/TranscriptionService';
 import { memoryExtractionService } from './services/extraction/MemoryExtractionService';
+import { conversationSegmentationService } from './services/segmentation/ConversationSegmentationService';
+import { speakerDiarizationService } from './services/diarization/SpeakerDiarizationService';
 
 import { Header } from './components/Header';
 import { StartSessionCard } from './components/StartSessionCard';
@@ -18,12 +21,14 @@ import { SessionList } from './components/SessionList';
 import { SessionDetailModal } from './components/SessionDetailModal';
 import { PermissionsBanner } from './components/PermissionsBanner';
 import { ArchitectureModal } from './components/ArchitectureModal';
+import { SpeakerPrivacyModal } from './components/SpeakerPrivacyModal';
 
 export const App: React.FC = () => {
   // Session State
   const [sessions, setSessions] = useState<MemorySession[]>([]);
   const [selectedSession, setSelectedSession] = useState<MemorySession | null>(null);
   const [totalStorageBytes, setTotalStorageBytes] = useState(0);
+  const [globalSpeakerPrivacyOpen, setGlobalSpeakerPrivacyOpen] = useState(false);
 
   // Active Recording State
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -245,8 +250,25 @@ export const App: React.FC = () => {
 
       let updated = await databaseService.getSession(session.id);
       if (updated) {
+        // Step 2: Speaker Diarization
+        setTranscriptionProgress({
+          status: 'transcribing',
+          percent: 75,
+          message: 'Identifying speakers and dialogue turns...'
+        });
+        updated = await speakerDiarizationService.diarizeAndPersist(updated);
+
+        // Step 3: Conversation Segmentation
+        setTranscriptionProgress({
+          status: 'transcribing',
+          percent: 88,
+          message: 'Segmenting conversation boundaries...'
+        });
+        updated = await conversationSegmentationService.segmentAndPersist(updated);
+
         setSelectedSession(updated);
-        // Automatically extract structured memory once transcription completes!
+
+        // Step 4: Automatically extract structured memory with speaker attributions!
         try {
           await handleExtractMemory(updated);
         } catch (e) {
@@ -363,6 +385,89 @@ export const App: React.FC = () => {
     }
   };
 
+  // Phase 4: Rename / Identify Speaker
+  const handleRenameSpeaker = async (
+    sessionId: string, 
+    speakerId: string, 
+    newName: string, 
+    isUser?: boolean
+  ) => {
+    try {
+      const updated = await databaseService.renameSpeaker(sessionId, speakerId, newName, isUser);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to rename speaker:', err);
+    }
+  };
+
+  // Phase 4: Rename Conversation Segment
+  const handleRenameSegment = async (
+    sessionId: string, 
+    segmentId: string, 
+    newTitle: string, 
+    contextType: ConversationContextType
+  ) => {
+    try {
+      const current = await databaseService.getSession(sessionId);
+      if (!current || !current.conversationSegments) return;
+      const updatedSegments = current.conversationSegments.map(s => 
+        s.id === segmentId ? { ...s, title: newTitle, contextType, isUserEdited: true } : s
+      );
+      const updated = await databaseService.updateSessionSegments(sessionId, updatedSegments);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to rename segment:', err);
+    }
+  };
+
+  // Phase 4: Split Conversation Segment
+  const handleSplitSegment = async (
+    sessionId: string, 
+    segmentId: string, 
+    splitTimeMs: number, 
+    newTitle?: string
+  ) => {
+    try {
+      const updated = await databaseService.splitConversationSegment(sessionId, segmentId, splitTimeMs, newTitle);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to split segment:', err);
+    }
+  };
+
+  // Phase 4: Merge Conversation Segments
+  const handleMergeSegments = async (
+    sessionId: string, 
+    segmentId1: string, 
+    segmentId2: string
+  ) => {
+    try {
+      const updated = await databaseService.mergeConversationSegments(sessionId, segmentId1, segmentId2);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to merge segments:', err);
+    }
+  };
+
+  // Phase 4: Update Conversation Context
+  const handleUpdateContext = async (
+    sessionId: string, 
+    contextType: ConversationContextType, 
+    customContext?: string
+  ) => {
+    try {
+      const updated = await databaseService.updateSessionContext(sessionId, contextType, customContext);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err) {
+      console.error('Failed to update context:', err);
+    }
+  };
+
   // Quick Play/Pause preview from Session Card
   const handleQuickPlay = async (session: MemorySession) => {
     if (quickPlayingId === session.id) {
@@ -410,6 +515,7 @@ export const App: React.FC = () => {
         isFullWidth={isFullWidth}
         onToggleFullWidth={() => setIsFullWidth(!isFullWidth)}
         onOpenArchitecture={() => setIsArchitectureModalOpen(true)}
+        onOpenSpeakerPrivacy={() => setGlobalSpeakerPrivacyOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -457,7 +563,7 @@ export const App: React.FC = () => {
         onMinimize={() => setActiveModalOpen(false)}
       />
 
-      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts, Phase 3 Structured Memory) */}
+      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts, Phase 3 Structured Memory, Phase 4 Segments & Speakers) */}
       <SessionDetailModal
         session={selectedSession}
         isOpen={!!selectedSession}
@@ -474,12 +580,24 @@ export const App: React.FC = () => {
         onDeleteEntity={handleDeleteEntity}
         onAddEntity={handleAddEntity}
         isExtractingMemory={isExtractingMemory}
+        onRenameSpeaker={handleRenameSpeaker}
+        onRenameSegment={handleRenameSegment}
+        onSplitSegment={handleSplitSegment}
+        onMergeSegments={handleMergeSegments}
+        onUpdateContext={handleUpdateContext}
       />
 
       {/* Architecture & Pipeline Modal */}
       <ArchitectureModal
         isOpen={isArchitectureModalOpen}
         onClose={() => setIsArchitectureModalOpen(false)}
+      />
+
+      {/* Global Speaker & Voice Privacy Manager */}
+      <SpeakerPrivacyModal
+        isOpen={globalSpeakerPrivacyOpen}
+        onClose={() => setGlobalSpeakerPrivacyOpen(false)}
+        onSpeakersUpdated={refreshSessions}
       />
     </div>
   );

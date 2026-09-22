@@ -92,10 +92,11 @@ Extract structured information from the provided transcript into a JSON object.
 
 CRITICAL RULES:
 1. Extract ONLY facts, decisions, tasks, people, and topics explicitly present in the conversation.
-2. Do NOT invent conclusions, priorities, or categories.
-3. If a category is not present in the conversation, return an empty array [].
-4. For tasks, extract the exact task, assignee (if explicitly named), and deadline (if explicitly named). Set completed to false.
-5. For each extracted item, identify the approximate sourceTimestampMs from the provided segment timestamps.
+2. Attribute speakers: for decisions include "madeBy" (array of names/You), for tasks include "assignedTo" and "assignedBy", for questions include "askedBy", for commitments include "fromPerson" and "toPerson".
+3. Do NOT invent conclusions, priorities, or categories.
+4. If a category is not present in the conversation, return an empty array [].
+5. For tasks, extract the exact task, assignee (if explicitly named), and deadline (if explicitly named). Set completed to false.
+6. For each extracted item, identify the approximate sourceTimestampMs from the provided segment timestamps.
 
 SCHEMA:
 {
@@ -103,10 +104,10 @@ SCHEMA:
   "people": [{ "id": string, "name": string, "role": string, "mentionCount": number, "sourceTimestampMs": number }],
   "topics": [{ "id": string, "name": string }],
   "keyPoints": [{ "id": string, "point": string, "sourceTimestampMs": number }],
-  "questions": [{ "id": string, "question": string, "status": "open" | "answered", "answer": string, "sourceTimestampMs": number }],
-  "ideas": [{ "id": string, "idea": string, "sourceTimestampMs": number }],
-  "decisions": [{ "id": string, "decision": string, "context": string, "sourceTimestampMs": number }],
-  "tasks": [{ "id": string, "task": string, "assignee": string, "dueDate": string, "completed": false, "sourceTimestampMs": number }],
+  "questions": [{ "id": string, "question": string, "askedBy": string, "status": "open" | "answered", "answer": string, "sourceTimestampMs": number }],
+  "ideas": [{ "id": string, "idea": string, "proposedBy": string, "sourceTimestampMs": number }],
+  "decisions": [{ "id": string, "decision": string, "madeBy": string[], "context": string, "sourceTimestampMs": number }],
+  "tasks": [{ "id": string, "task": string, "assignedTo": string, "assignedBy": string, "dueDate": string, "completed": false, "sourceTimestampMs": number }],
   "commitments": [{ "id": string, "commitment": string, "fromPerson": string, "toPerson": string, "sourceTimestampMs": number }],
   "dates": [{ "id": string, "date": string, "description": string, "sourceTimestampMs": number }],
   "events": [{ "id": string, "title": string, "dateOrTime": string, "location": string, "sourceTimestampMs": number }],
@@ -115,7 +116,11 @@ SCHEMA:
 
               const userContent = JSON.stringify({
                 transcript: transcriptText,
-                segments: segments.slice(0, 50).map((s: any) => ({ startMs: s.startTimeMs, text: s.text }))
+                segments: segments.slice(0, 50).map((s: any) => ({ 
+                  startMs: s.startTimeMs, 
+                  speaker: s.speakerLabel || s.speakerId,
+                  text: s.text 
+                }))
               });
 
               const response = await fetch(targetUrl, {
@@ -156,6 +161,44 @@ SCHEMA:
               }));
             }
           });
+          return;
+        }
+
+        // Route 3: Conversation segmentation proxy
+        if (req.url === '/api/segment-conversation' && req.method === 'POST') {
+          const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
+          if (!apiKey) {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              code: 'NO_API_KEY',
+              message: 'No backend API key configured. Client falling back to local on-device segmentation.'
+            }));
+            return;
+          }
+          // Fall back gracefully if not implemented externally
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ code: 'NO_API_KEY', message: 'Use local segmentation' }));
+          return;
+        }
+
+        // Route 4: Speaker diarization proxy
+        if (req.url === '/api/diarize-speakers' && req.method === 'POST') {
+          const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
+          if (!apiKey) {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({
+              code: 'NO_API_KEY',
+              message: 'No backend API key configured. Client falling back to local on-device diarization.'
+            }));
+            return;
+          }
+          // Fall back gracefully
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ code: 'NO_API_KEY', message: 'Use local diarization' }));
           return;
         }
 

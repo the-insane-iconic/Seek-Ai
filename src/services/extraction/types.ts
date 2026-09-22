@@ -18,7 +18,7 @@ export interface IMemoryExtractionProvider {
    */
   extract(
     transcriptText: string, 
-    segments: { id: string; startTimeMs: number; endTimeMs: number; text: string }[],
+    segments: { id: string; startTimeMs: number; endTimeMs: number; text: string; speakerId?: string; speakerLabel?: string }[],
     options?: ExtractionOptions
   ): Promise<Omit<StructuredMemory, 'id' | 'sessionId' | 'status' | 'extractedAt'>>;
 }

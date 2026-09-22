@@ -1,9 +1,18 @@
 import React from 'react';
 import { 
   Play, Pause, Calendar, Clock, HardDrive, ChevronRight, 
-  FileText, CheckCircle2, Loader2, CheckSquare, Brain 
+  FileText, CheckCircle2, Loader2, CheckSquare, Brain,
+  Layers, Tag, Users 
 } from 'lucide-react';
-import { MemorySession, formatDuration, formatSessionDate, formatSessionTime, formatFileSize } from '../models/session';
+import { 
+  MemorySession, 
+  formatDuration, 
+  formatSessionDate, 
+  formatSessionTime, 
+  formatFileSize,
+  formatContextLabel,
+  getSpeakerDisplayName
+} from '../models/session';
 
 interface SessionCardProps {
   session: MemorySession;
@@ -24,6 +33,9 @@ export const SessionCard: React.FC<SessionCardProps> = ({
 
   const memory = session.structuredMemory;
   const hasMemory = memory && memory.status === 'completed';
+
+  const segmentsCount = session.conversationSegments?.length || 0;
+  const sessionSpeakers = session.speakers || [];
 
   // Preview snippet from summary or transcript
   const snippet = hasMemory && memory.summary?.oneLiner
@@ -47,7 +59,22 @@ export const SessionCard: React.FC<SessionCardProps> = ({
     >
       {/* Header: Title and Duration pill */}
       <div className="session-card-header">
-        <h3 className="session-title-text">{session.title}</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span className="card-context-pill">
+              <Tag size={9} />
+              <span>{formatContextLabel(session.contextType, session.customContext)}</span>
+            </span>
+            {segmentsCount > 1 && (
+              <span className="card-segments-pill">
+                <Layers size={9} />
+                <span>{segmentsCount} Conversations</span>
+              </span>
+            )}
+          </div>
+          <h3 className="session-title-text">{session.title}</h3>
+        </div>
+
         <span className="session-badge-duration">
           {formatDuration(session.durationMs)}
         </span>
@@ -58,6 +85,27 @@ export const SessionCard: React.FC<SessionCardProps> = ({
         <div className="session-card-snippet">
           {hasMemory ? <Brain size={12} className="snippet-icon" color="#34d399" /> : <FileText size={12} className="snippet-icon" />}
           <p>{snippet}</p>
+        </div>
+      )}
+
+      {/* Speaker Chips Preview */}
+      {sessionSpeakers.length > 0 && (
+        <div className="session-card-speakers-row">
+          <Users size={11} color="#94a3b8" />
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {sessionSpeakers.slice(0, 3).map((sp) => (
+              <span 
+                key={sp.id} 
+                className="speaker-chip-pill"
+                style={{ borderLeftColor: sp.avatarColor || '#38bdf8' }}
+              >
+                {sp.isUser ? 'You' : getSpeakerDisplayName(sp)}
+              </span>
+            ))}
+            {sessionSpeakers.length > 3 && (
+              <span className="speaker-more-pill">+{sessionSpeakers.length - 3}</span>
+            )}
+          </div>
         </div>
       )}
 

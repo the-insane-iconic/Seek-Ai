@@ -18,6 +18,31 @@ export type TranscriptionStatus =
   | 'failed';
 
 /**
+ * Phase 4 Extension: Conversation Context & Segments
+ */
+export type ConversationContextType = 
+  | 'lecture' 
+  | 'meeting' 
+  | 'personal' 
+  | 'interview' 
+  | 'project' 
+  | 'study' 
+  | 'other';
+
+export interface ConversationSegment {
+  id: string;
+  sessionId: string;
+  title: string;
+  contextType: ConversationContextType;
+  customContext?: string;
+  startTimeMs: number;
+  endTimeMs: number;
+  speakerIds: string[];
+  summary?: string;
+  isUserEdited?: boolean;
+}
+
+/**
  * Phase 2 Extension: Speech-to-Text Utterance & Word Timestamps
  */
 export interface TranscriptWord {
@@ -30,6 +55,9 @@ export interface TranscriptWord {
 export interface TranscriptSegment {
   id: string;
   speakerId?: string;
+  speakerLabel?: string;
+  confidence?: number;
+  conversationSegmentId?: string;
   startTimeMs: number;
   endTimeMs: number;
   text: string;
@@ -51,14 +79,19 @@ export interface TranscriptData {
 }
 
 /**
- * Phase 2+ Extension Hook: Speaker Recognition Profile
+ * Phase 4 Extension: Speaker Recognition Profile
  */
 export interface SpeakerProfile {
   id: string;
   label: string; // e.g. "Speaker 1" or "User"
-  name?: string;  // e.g. "Ansh"
-  isUser: boolean;
+  name?: string;  // e.g. "Rahul"
+  isUser: boolean; // true if this speaker is the app user ("You")
+  confidence?: number; // 0.0 - 1.0 (displays uncertainty)
   avatarColor?: string;
+  voiceSampleCount?: number;
+  associatedSessionCount?: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type ExtractionStatus = 'idle' | 'extracting' | 'completed' | 'failed';
@@ -91,6 +124,8 @@ export interface MemoryKeyPoint {
 export interface MemoryQuestion {
   id: string;
   question: string;
+  askedBy?: string;
+  answeredBy?: string;
   status: 'open' | 'answered';
   answer?: string;
   sourceTimestampMs?: number;
@@ -101,6 +136,7 @@ export interface MemoryQuestion {
 export interface MemoryIdea {
   id: string;
   idea: string;
+  proposedBy?: string;
   sourceTimestampMs?: number;
   isUserEdited?: boolean;
   isUserCreated?: boolean;
@@ -110,6 +146,7 @@ export interface MemoryDecision {
   id: string;
   decision: string;
   context?: string;
+  madeBy?: string[]; // e.g. ["You", "Rahul"]
   sourceTimestampMs?: number;
   isUserEdited?: boolean;
   isUserCreated?: boolean;
@@ -119,6 +156,8 @@ export interface MemoryTask {
   id: string;
   task: string;
   assignee?: string;
+  assignedTo?: string; // e.g. "You"
+  assignedBy?: string; // e.g. "Rahul"
   dueDate?: string;
   completed: boolean;
   sourceTimestampMs?: number;
@@ -222,9 +261,12 @@ export interface MemorySession {
   createdAt: number;
   updatedAt: number;
 
-  // Future Phase Expansion Fields (Optional/Nullable in Phase 1)
-  transcript?: TranscriptData;
+  // Phase 4 Extensions: Conversation Context, Segments, & Speakers
+  contextType?: ConversationContextType;
+  customContext?: string;
+  conversationSegments?: ConversationSegment[];
   speakers?: SpeakerProfile[];
+  transcript?: TranscriptData;
   structuredMemory?: StructuredMemory;
   embeddings?: EmbeddingVector[];
 }
@@ -309,3 +351,41 @@ export function generateDefaultSessionTitle(timestamp: number): string {
   const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   return `Memory • ${dateStr}, ${timeStr}`;
 }
+
+export const SPEAKER_PALETTE = [
+  '#38bdf8', // Sky
+  '#a855f7', // Purple
+  '#34d399', // Emerald
+  '#f59e0b', // Amber
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#6366f1', // Indigo
+  '#10b981'  // Teal
+];
+
+export function getSpeakerColor(index: number): string {
+  return SPEAKER_PALETTE[index % SPEAKER_PALETTE.length];
+}
+
+export function getSpeakerDisplayName(speaker?: SpeakerProfile, fallback = 'Speaker'): string {
+  if (!speaker) return fallback;
+  if (speaker.isUser) return 'You';
+  return speaker.name || speaker.label || fallback;
+}
+
+export const CONTEXT_LABELS: Record<ConversationContextType, string> = {
+  lecture: 'Lecture',
+  meeting: 'Meeting',
+  personal: 'Personal conversation',
+  interview: 'Interview',
+  project: 'Project discussion',
+  study: 'Study session',
+  other: 'Other'
+};
+
+export function formatContextLabel(type?: ConversationContextType, custom?: string): string {
+  if (!type) return 'General Conversation';
+  if (type === 'other' && custom) return custom;
+  return CONTEXT_LABELS[type] || 'Conversation';
+}
+
