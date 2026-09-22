@@ -9,8 +9,16 @@
 
 export type SessionStatus = 'active' | 'completed' | 'discarded' | 'interrupted';
 
+export type TranscriptionStatus = 
+  | 'idle' 
+  | 'waiting' 
+  | 'uploading' 
+  | 'transcribing' 
+  | 'completed' 
+  | 'failed';
+
 /**
- * Phase 2+ Extension Hook: Speech-to-Text Utterance
+ * Phase 2 Extension: Speech-to-Text Utterance & Word Timestamps
  */
 export interface TranscriptWord {
   word: string;
@@ -29,11 +37,17 @@ export interface TranscriptSegment {
 }
 
 export interface TranscriptData {
+  id: string;
   fullText: string;
   language: string;
   segments: TranscriptSegment[];
   generatedAt: number;
   engine: string;
+  status: TranscriptionStatus;
+  error?: string;
+  isEdited?: boolean;
+  originalText?: string;
+  editedAt?: number;
 }
 
 /**

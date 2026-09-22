@@ -8,7 +8,7 @@
  * (e.g. 'transcripts', 'speakers', 'embeddings') cleanly.
  */
 
-import { MemorySession } from '../../models/session';
+import { MemorySession, TranscriptData, TranscriptionStatus } from '../../models/session';
 
 const DB_NAME = 'MemoryAppDB';
 const DB_VERSION = 1;
@@ -136,6 +136,95 @@ class DatabaseService {
     const updated: MemorySession = {
       ...session,
       title: newTitle.trim() || session.title,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Associate or update complete transcript data for a session
+   */
+  public async updateSessionTranscript(id: string, transcript: TranscriptData): Promise<MemorySession> {
+    const session = await this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found with id: ${id}`);
+    }
+
+    const updated: MemorySession = {
+      ...session,
+      transcript,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Edit transcript text while preserving original text
+   */
+  public async updateTranscriptText(id: string, newText: string): Promise<MemorySession> {
+    const session = await this.getSession(id);
+    if (!session || !session.transcript) {
+      throw new Error(`Session or transcript not found for id: ${id}`);
+    }
+
+    const currentTranscript = session.transcript;
+    const originalText = currentTranscript.originalText || currentTranscript.fullText;
+
+    const updatedTranscript: TranscriptData = {
+      ...currentTranscript,
+      fullText: newText,
+      originalText,
+      isEdited: true,
+      editedAt: Date.now()
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      transcript: updatedTranscript,
+      updatedAt: Date.now()
+    };
+
+    await this.saveSession(updated);
+    return updated;
+  }
+
+  /**
+   * Update the transcription processing status
+   */
+  public async updateTranscriptionStatus(
+    id: string, 
+    status: TranscriptionStatus, 
+    error?: string
+  ): Promise<MemorySession> {
+    const session = await this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found with id: ${id}`);
+    }
+
+    const currentTranscript = session.transcript || {
+      id: `tr_${id}`,
+      fullText: '',
+      language: 'en',
+      segments: [],
+      generatedAt: Date.now(),
+      engine: 'whisper',
+      status: 'idle'
+    };
+
+    const updatedTranscript: TranscriptData = {
+      ...currentTranscript,
+      status,
+      error: error || undefined,
+      generatedAt: status === 'completed' ? Date.now() : currentTranscript.generatedAt
+    };
+
+    const updated: MemorySession = {
+      ...session,
+      transcript: updatedTranscript,
       updatedAt: Date.now()
     };
 

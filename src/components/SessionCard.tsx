@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Calendar, Clock, HardDrive, ChevronRight } from 'lucide-react';
+import { Play, Pause, Calendar, Clock, HardDrive, ChevronRight, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { MemorySession, formatDuration, formatSessionDate, formatSessionTime, formatFileSize } from '../models/session';
 
 interface SessionCardProps {
@@ -15,6 +15,15 @@ export const SessionCard: React.FC<SessionCardProps> = ({
   onPlayQuick,
   isQuickPlaying = false
 }) => {
+  const transcript = session.transcript;
+  const isTranscribed = transcript && transcript.status === 'completed';
+  const isTranscribing = transcript && (transcript.status === 'transcribing' || transcript.status === 'uploading' || transcript.status === 'waiting');
+
+  // Preview snippet from transcript if available
+  const snippet = isTranscribed && transcript.fullText
+    ? (transcript.fullText.length > 90 ? transcript.fullText.substring(0, 90) + '...' : transcript.fullText)
+    : null;
+
   return (
     <div 
       className="session-card" 
@@ -31,6 +40,14 @@ export const SessionCard: React.FC<SessionCardProps> = ({
         </span>
       </div>
 
+      {/* Transcript snippet if available */}
+      {snippet && (
+        <div className="session-card-snippet">
+          <FileText size={12} className="snippet-icon" />
+          <p>{snippet}</p>
+        </div>
+      )}
+
       {/* Metadata items */}
       <div className="session-card-meta">
         <div className="meta-item">
@@ -45,6 +62,20 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           <HardDrive size={13} />
           <span>{formatFileSize(session.audioSizeBytes)}</span>
         </div>
+
+        {/* Status chip */}
+        {isTranscribed && (
+          <span className="session-card-tr-badge success">
+            <CheckCircle2 size={10} />
+            <span>Transcribed</span>
+          </span>
+        )}
+        {isTranscribing && (
+          <span className="session-card-tr-badge processing">
+            <Loader2 size={10} className="spin-icon" />
+            <span>Processing</span>
+          </span>
+        )}
       </div>
 
       {/* Footer: Quick Play button and Detail indicator */}

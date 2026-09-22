@@ -7,6 +7,7 @@ import {
 import { databaseService } from './services/storage/database';
 import { audioFileManager } from './services/storage/audioFileManager';
 import { recordingService, RecordingState } from './services/audio/RecordingService';
+import { transcriptionService } from './services/transcription/TranscriptionService';
 
 import { Header } from './components/Header';
 import { StartSessionCard } from './components/StartSessionCard';
@@ -29,6 +30,13 @@ export const App: React.FC = () => {
   const [frequencyData, setFrequencyData] = useState<Uint8Array | undefined>(undefined);
   const [activeModalOpen, setActiveModalOpen] = useState(false);
 
+  // Transcription Progress State
+  const [transcriptionProgress, setTranscriptionProgress] = useState<{
+    status: string;
+    percent?: number;
+    message?: string;
+  } | null>(null);
+
   // Errors & Permissions
   const [errorType, setErrorType] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,8 +56,10 @@ export const App: React.FC = () => {
       setSessions(list);
       const stats = await databaseService.getStorageStats();
       setTotalStorageBytes(stats.totalAudioBytes);
+      return list;
     } catch (err: any) {
       console.error('Failed to load sessions from database:', err);
+      return [];
     }
   };
 
@@ -121,7 +131,6 @@ export const App: React.FC = () => {
       setActiveModalOpen(true);
     } catch (err: any) {
       console.error('Start recording failed:', err);
-      // Handled by onError listener
     }
   };
 
@@ -167,7 +176,7 @@ export const App: React.FC = () => {
       await databaseService.saveSession(newSession);
       await refreshSessions();
 
-      // Open detail modal to let user listen and rename immediately
+      // Open detail modal to let user listen and transcribe
       setSelectedSession(newSession);
     } catch (err: any) {
       console.error('Failed to stop and save session:', err);
@@ -213,6 +222,57 @@ export const App: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to delete session:', err);
     }
+  };
+
+  // Transcribe session handler
+  const handleTranscribeSession = async (session: MemorySession, providerId: string) => {
+    setTranscriptionProgress({
+      status: 'waiting',
+      percent: 10,
+      message: 'Initializing speech-to-text...'
+    });
+
+    try {
+      await transcriptionService.transcribeSession(session, {
+        providerId,
+        onProgress: (status, percent, message) => {
+          setTranscriptionProgress({ status, percent, message });
+        }
+      });
+
+      const updated = await databaseService.getSession(session.id);
+      if (updated) {
+        setSelectedSession(updated);
+      }
+      await refreshSessions();
+    } catch (err: any) {
+      console.error('Transcription failed:', err);
+      const updated = await databaseService.getSession(session.id);
+      if (updated) {
+        setSelectedSession(updated);
+      }
+      await refreshSessions();
+    } finally {
+      setTimeout(() => {
+        setTranscriptionProgress(null);
+      }, 1200);
+    }
+  };
+
+  // Edit transcript text
+  const handleSaveTranscriptEdit = async (sessionId: string, newText: string) => {
+    try {
+      const updated = await databaseService.updateTranscriptText(sessionId, newText);
+      setSelectedSession(updated);
+      await refreshSessions();
+    } catch (err: any) {
+      console.error('Failed to save transcript edit:', err);
+    }
+  };
+
+  // Retry failed transcription
+  const handleRetryTranscribe = async (session: MemorySession) => {
+    await handleTranscribeSession(session, 'backend');
   };
 
   // Quick Play/Pause preview from Session Card
@@ -309,16 +369,20 @@ export const App: React.FC = () => {
         onMinimize={() => setActiveModalOpen(false)}
       />
 
-      {/* Session Details Modal (Playback, Metadata, Rename, Delete, P2 Preview) */}
+      {/* Session Details Modal (Playback, Metadata, Rename, Delete, Phase 2 Transcripts) */}
       <SessionDetailModal
         session={selectedSession}
         isOpen={!!selectedSession}
         onClose={() => setSelectedSession(null)}
         onRename={handleRenameSession}
         onDelete={handleDeleteSession}
+        onTranscribe={handleTranscribeSession}
+        onSaveTranscriptEdit={handleSaveTranscriptEdit}
+        onRetryTranscribe={handleRetryTranscribe}
+        transcriptionProgress={transcriptionProgress}
       />
 
-      {/* Architecture & Phase 2 Pipeline Modal */}
+      {/* Architecture & Pipeline Modal */}
       <ArchitectureModal
         isOpen={isArchitectureModalOpen}
         onClose={() => setIsArchitectureModalOpen(false)}

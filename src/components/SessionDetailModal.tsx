@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Edit3, Check, Trash2, Download, Copy 
+  X, Edit3, Check, Trash2, Download, Copy, Sparkles, 
+  RotateCcw, AlertTriangle, Loader2, ArrowRight, CheckCircle2 
 } from 'lucide-react';
 import { 
   MemorySession, 
@@ -11,6 +12,8 @@ import {
 } from '../models/session';
 import { audioFileManager } from '../services/storage/audioFileManager';
 import { AudioPlayer } from './AudioPlayer';
+import { TranscriptView } from './TranscriptView';
+import { PrivacyConsentModal } from './PrivacyConsentModal';
 
 interface SessionDetailModalProps {
   session: MemorySession | null;
@@ -18,9 +21,17 @@ interface SessionDetailModalProps {
   onClose: () => void;
   onRename: (sessionId: string, newTitle: string) => Promise<void>;
   onDelete: (sessionId: string) => Promise<void>;
+  onTranscribe: (session: MemorySession, providerId: string) => Promise<void>;
+  onSaveTranscriptEdit: (sessionId: string, newText: string) => Promise<void>;
+  onRetryTranscribe: (session: MemorySession) => Promise<void>;
+  transcriptionProgress?: {
+    status: string;
+    percent?: number;
+    message?: string;
+  } | null;
 }
 
-type TabType = 'audio' | 'transcript' | 'speakers' | 'memory' | 'ai';
+type TabType = 'overview' | 'transcript' | 'phase3';
 
 export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   session,
@@ -28,21 +39,35 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onClose,
   onRename,
   onDelete,
+  onTranscribe,
+  onSaveTranscriptEdit,
+  onRetryTranscribe,
+  transcriptionProgress,
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('audio');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+
+  // Sync state between AudioPlayer and TranscriptView
+  const [currentAudioTimeMs, setCurrentAudioTimeMs] = useState(0);
+  const [seekTargetMs, setSeekTargetMs] = useState<number | null>(null);
 
   useEffect(() => {
     if (session) {
       setEditedTitle(session.title);
       setIsEditingTitle(false);
       setIsDeleting(false);
-      setActiveTab('audio');
+      // If session already has transcript, switch to transcript tab by default
+      if (session.transcript && session.transcript.status === 'completed') {
+        setActiveTab('transcript');
+      } else {
+        setActiveTab('overview');
+      }
 
       // Fetch ObjectURL for audio playback
       audioFileManager.getPlaybackUrl(session.id).then(url => {
@@ -82,16 +107,44 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     onClose();
   };
 
+  const handleSeekToSegment = (ms: number) => {
+    setSeekTargetMs(ms);
+    // Reset seekTarget after slight delay to allow subsequent clicks on the same timestamp
+    setTimeout(() => setSeekTargetMs(null), 50);
+  };
+
+  const transcript = session.transcript;
+  const isTranscribing = transcript?.status === 'waiting' || 
+                        transcript?.status === 'uploading' || 
+                        transcript?.status === 'transcribing';
+  const isFailed = transcript?.status === 'failed';
+  const isCompleted = transcript?.status === 'completed';
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-sheet">
+        {/* Top Sheet Drag Handle on mobile */}
+        <div className="modal-drag-handle-pill" />
+
         {/* Header bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span className="phase-tag">SESSION DETAILS</span>
             <span style={{ fontSize: '12px', color: '#64748b' }}>
               {formatDuration(session.durationMs)}
             </span>
+            {isCompleted && (
+              <span className="status-badge-chip success">
+                <CheckCircle2 size={11} />
+                <span>Transcribed</span>
+              </span>
+            )}
+            {isTranscribing && (
+              <span className="status-badge-chip processing">
+                <Loader2 size={11} className="spin-icon" />
+                <span>Transcribing</span>
+              </span>
+            )}
           </div>
           <button className="card-options-btn" onClick={onClose} title="Close details">
             <X size={20} />
@@ -119,7 +172,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', color: '#f8fafc' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', color: '#f8fafc', wordBreak: 'break-word' }}>
               {session.title}
             </h2>
             <button
@@ -133,75 +186,116 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* Navigation Tabs: Audio & Future Pipeline Previews */}
-        <div style={{
-          display: 'flex',
-          gap: '4px',
-          background: 'rgba(0,0,0,0.3)',
-          padding: '4px',
-          borderRadius: '10px',
-          border: '1px solid var(--border-subtle)',
-          overflowX: 'auto'
-        }}>
+        {/* Navigation Tabs */}
+        <div className="modal-tabs-wrapper">
           <button
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: activeTab === 'audio' ? 'var(--accent-primary)' : 'transparent',
-              color: activeTab === 'audio' ? '#ffffff' : 'var(--text-secondary)',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap'
-            }}
-            onClick={() => setActiveTab('audio')}
+            className={`modal-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
           >
             Audio & Details
           </button>
           <button
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: activeTab === 'transcript' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-              color: activeTab === 'transcript' ? '#a5b4fc' : 'var(--text-muted)',
-              whiteSpace: 'nowrap'
-            }}
+            className={`modal-tab-btn ${activeTab === 'transcript' ? 'active' : ''}`}
             onClick={() => setActiveTab('transcript')}
           >
-            Transcript (P2)
+            <span>Transcript</span>
+            {isCompleted && <span className="tab-dot-badge" />}
           </button>
           <button
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: activeTab === 'memory' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-              color: activeTab === 'memory' ? '#a5b4fc' : 'var(--text-muted)',
-              whiteSpace: 'nowrap'
-            }}
-            onClick={() => setActiveTab('memory')}
+            className={`modal-tab-btn ${activeTab === 'phase3' ? 'active' : ''}`}
+            onClick={() => setActiveTab('phase3')}
           >
-            Structured AI (P2)
+            Phase 3 AI Preview
           </button>
         </div>
 
-        {/* Tab 1: Audio Playback & Technical Metadata */}
-        {activeTab === 'audio' && (
+        {/* Dedicated Audio Player Section */}
+        <div className="session-audio-section">
+          <AudioPlayer 
+            src={audioUrl} 
+            totalDurationMs={session.durationMs}
+            seekToMs={seekTargetMs}
+            onTimeUpdate={(ms) => setCurrentAudioTimeMs(ms)}
+          />
+        </div>
+
+        {/* Transcription Processing Alert / Progress Banner */}
+        {isTranscribing && (
+          <div className="transcription-progress-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Loader2 size={16} className="spin-icon" color="#818cf8" />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+                  {transcriptionProgress?.message || 'Transcribing recording...'}
+                </span>
+              </div>
+              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#a5b4fc', fontWeight: 600 }}>
+                {transcriptionProgress?.percent || 30}%
+              </span>
+            </div>
+            <div className="progress-bar-track">
+              <div 
+                className="progress-bar-fill" 
+                style={{ width: `${transcriptionProgress?.percent || 30}%` }} 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Transcription Failed Banner with Retry */}
+        {isFailed && (
+          <div className="transcription-failed-card">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <AlertTriangle size={18} color="#ef4444" style={{ marginTop: '2px' }} />
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontSize: '13px', color: '#fca5a5' }}>
+                  Transcription Failed
+                </strong>
+                <p style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px' }}>
+                  {transcript?.error || 'Speech-to-text encountered an issue while processing this session.'}
+                </p>
+                <button
+                  className="btn-retry-transcribe"
+                  onClick={() => onRetryTranscribe(session)}
+                  id="btn-retry-transcription"
+                >
+                  <RotateCcw size={13} />
+                  <span>Retry Transcription</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 1: OVERVIEW & TECHNICAL METADATA */}
+        {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Audio Player */}
-            <AudioPlayer src={audioUrl} totalDurationMs={session.durationMs} />
+            {/* Quick Action: Transcribe if not transcribed */}
+            {!isCompleted && !isTranscribing && (
+              <div className="transcribe-cta-banner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="transcribe-cta-icon">
+                    <Sparkles size={20} color="#818cf8" />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
+                      Transcribe this Memory
+                    </h4>
+                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                      Convert spoken audio into searchable, timestamped text.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="btn-start-transcribe"
+                  onClick={() => setPrivacyModalOpen(true)}
+                  id="btn-transcribe-now"
+                >
+                  <span>Transcribe</span>
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            )}
 
             {/* Metadata Grid */}
             <div className="metadata-grid">
@@ -255,54 +349,69 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         )}
 
-        {/* Tab 2: Future Phase 2 Preview - Transcription & Speakers */}
+        {/* TAB 2: TRANSCRIPT VIEW */}
         {activeTab === 'transcript' && (
-          <div className="phase-preview-card">
-            <div className="phase-preview-header">
-              <span className="phase-preview-title">Speech-to-Text & Speaker Diarization</span>
-              <span className="phase-tag">PHASE 2 TARGET</span>
-            </div>
-            <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
-              The Session data model in <code style={{ color: '#a5b4fc' }}>src/models/session.ts</code> already contains pre-allocated interfaces (<code style={{ color: '#a5b4fc' }}>TranscriptData</code>, <code style={{ color: '#a5b4fc' }}>SpeakerProfile</code>) ready to ingest Whisper or native speech recognition results in Phase 2.
-            </p>
-            <div style={{
-              background: 'rgba(0,0,0,0.4)',
-              borderRadius: '8px',
-              padding: '12px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              color: '#cbd5e1'
-            }}>
-              <span style={{ color: '#6ee7b7' }}>// Phase 2 Extension Point:</span><br/>
-              await speechToTextService.transcribe(session.audioBlob);<br/>
-              session.transcript = &#123; segments, language: 'en' &#125;;
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {isCompleted && transcript ? (
+              <TranscriptView
+                transcript={transcript}
+                currentAudioTimeMs={currentAudioTimeMs}
+                onSeekToMs={handleSeekToSegment}
+                onSaveEdit={(newText) => onSaveTranscriptEdit(session.id, newText)}
+              />
+            ) : isTranscribing ? (
+              <div className="transcript-empty-placeholder">
+                <Loader2 size={32} className="spin-icon" color="#818cf8" />
+                <h3>Generating Transcript...</h3>
+                <p>Speech-to-text engine is processing timestamps and text.</p>
+              </div>
+            ) : (
+              <div className="transcript-empty-placeholder">
+                <Sparkles size={36} color="#6366f1" />
+                <h3>No Transcript Yet</h3>
+                <p>
+                  Transcribe this session to review spoken words, jump to specific moments in audio, and edit text.
+                </p>
+                <button
+                  className="btn-primary"
+                  style={{ marginTop: '8px' }}
+                  onClick={() => setPrivacyModalOpen(true)}
+                  id="btn-tab-transcribe"
+                >
+                  <Sparkles size={16} />
+                  <span>Start Transcription</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tab 3: Future Phase 2 Preview - Structured Memory & AI */}
-        {activeTab === 'memory' && (
+        {/* TAB 3: PHASE 3 AI PREVIEW */}
+        {activeTab === 'phase3' && (
           <div className="phase-preview-card">
             <div className="phase-preview-header">
-              <span className="phase-preview-title">Structured Memory & Semantic Search</span>
-              <span className="phase-tag">PHASE 2 TARGET</span>
+              <span className="phase-preview-title">Next: Phase 3 AI Pipeline</span>
+              <span className="phase-tag">ROADMAP</span>
             </div>
             <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
-              In Phase 2, this audio and its transcript will automatically be analyzed to extract action items, key decisions, topics, and vector embeddings for semantic recall without altering Phase 1 storage foundations.
+              With Phase 2 speech-to-text completed, Phase 3 will analyze these transcripts to extract:
             </p>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '8px',
-              fontSize: '11px'
-            }}>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px', borderRadius: '6px' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 600 }}>Action Items</span>
-                <p style={{ color: '#64748b', marginTop: '2px' }}>Automatic task extraction</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '11px' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Speaker Labels</span>
+                <p style={{ color: '#64748b', marginTop: '3px' }}>Identify voices and speakers</p>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px', borderRadius: '6px' }}>
-                <span style={{ color: '#a5b4fc', fontWeight: 600 }}>Key Decisions</span>
-                <p style={{ color: '#64748b', marginTop: '2px' }}>Contextual memory log</p>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Action Items</span>
+                <p style={{ color: '#64748b', marginTop: '3px' }}>Automatic task detection</p>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Decisions</span>
+                <p style={{ color: '#64748b', marginTop: '3px' }}>Key choices and agreements</p>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Semantic Search</span>
+                <p style={{ color: '#64748b', marginTop: '3px' }}>Vector query memory recall</p>
               </div>
             </div>
           </div>
@@ -320,10 +429,10 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             gap: '10px'
           }}>
             <p style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 600 }}>
-              Permanently delete this memory session and audio file?
+              Permanently delete this memory session, audio recording, and transcript?
             </p>
             <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-              This cannot be undone. All audio blobs and metadata stored locally will be permanently purged.
+              This cannot be undone. All data will be permanently purged from this device.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
@@ -332,7 +441,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 onClick={handleDeleteConfirm}
                 id="btn-confirm-delete"
               >
-                Yes, Permanently Delete
+                Yes, Delete Everything
               </button>
               <button 
                 className="btn-secondary" 
@@ -369,6 +478,17 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             </button>
           </div>
         )}
+
+        {/* Privacy Consent Dialog */}
+        <PrivacyConsentModal
+          isOpen={privacyModalOpen}
+          sessionTitle={session.title}
+          onClose={() => setPrivacyModalOpen(false)}
+          onConfirm={(providerId) => {
+            setPrivacyModalOpen(false);
+            onTranscribe(session, providerId);
+          }}
+        />
       </div>
     </div>
   );

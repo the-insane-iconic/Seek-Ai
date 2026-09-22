@@ -6,12 +6,16 @@ interface AudioPlayerProps {
   src: string | null;
   totalDurationMs?: number;
   autoPlay?: boolean;
+  seekToMs?: number | null;
+  onTimeUpdate?: (currentTimeMs: number) => void;
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   src,
   totalDurationMs = 0,
-  autoPlay = false
+  autoPlay = false,
+  seekToMs = null,
+  onTimeUpdate
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -25,12 +29,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   }, [totalDurationMs]);
 
+  // Handle external seek requests from transcript segment clicks
+  useEffect(() => {
+    if (seekToMs !== null && seekToMs !== undefined && audioRef.current) {
+      const targetSec = seekToMs / 1000;
+      audioRef.current.currentTime = targetSec;
+      setCurrentTimeMs(seekToMs);
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  }, [seekToMs]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      setCurrentTimeMs(audio.currentTime * 1000);
+      const ms = audio.currentTime * 1000;
+      setCurrentTimeMs(ms);
+      onTimeUpdate?.(ms);
     };
 
     const handleLoadedMetadata = () => {
@@ -42,6 +58,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTimeMs(0);
+      onTimeUpdate?.(0);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -57,7 +74,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [src, autoPlay]);
+  }, [src, autoPlay, onTimeUpdate]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -76,6 +93,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetMs = Number(e.target.value);
     setCurrentTimeMs(targetMs);
+    onTimeUpdate?.(targetMs);
     if (audioRef.current) {
       audioRef.current.currentTime = targetMs / 1000;
     }
@@ -85,7 +103,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (!audioRef.current) return;
     const newTime = Math.max(0, Math.min(audioRef.current.currentTime + seconds, (durationMs || 1000) / 1000));
     audioRef.current.currentTime = newTime;
-    setCurrentTimeMs(newTime * 1000);
+    const ms = newTime * 1000;
+    setCurrentTimeMs(ms);
+    onTimeUpdate?.(ms);
   };
 
   const cyclePlaybackRate = () => {
@@ -136,16 +156,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           className="speed-toggle-btn"
           onClick={cyclePlaybackRate}
           title="Change playback speed"
+          aria-label="Playback speed"
         >
           {playbackRate}x
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Skip Back 5s */}
           <button 
-            className="card-options-btn" 
+            className="player-control-icon-btn" 
             onClick={() => handleSkip(-5)}
             title="Rewind 5 seconds"
+            aria-label="Rewind 5 seconds"
           >
             <RotateCcw size={18} />
           </button>
@@ -155,22 +177,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             className="player-main-btn" 
             onClick={togglePlay}
             title={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             {isPlaying ? <Pause size={20} fill="#ffffff" /> : <Play size={20} fill="#ffffff" style={{ marginLeft: '2px' }} />}
           </button>
 
           {/* Skip Forward 5s */}
           <button 
-            className="card-options-btn" 
+            className="player-control-icon-btn" 
             onClick={() => handleSkip(5)}
             title="Fast forward 5 seconds"
+            aria-label="Fast forward 5 seconds"
           >
             <RotateCw size={18} />
           </button>
         </div>
 
         {/* Volume icon aesthetic */}
-        <div style={{ color: '#64748b' }}>
+        <div style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
           <Volume2 size={16} />
         </div>
       </div>
