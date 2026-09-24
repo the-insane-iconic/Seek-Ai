@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Search, Send, Sparkles, X, Play, Clock, Tag, 
+  Search, Send, Bot, X, Play, Clock, Tag, 
   CheckCircle2, ArrowRight, Loader2, RotateCcw, Brain, CheckSquare, 
   HelpCircle, Lightbulb, FileText, User 
 } from 'lucide-react';
@@ -114,13 +114,13 @@ export const SearchAndAssistantView: React.FC<SearchAndAssistantViewProps> = ({
 
   const getUnitIcon = (type: MemoryEmbeddingUnitType) => {
     switch (type) {
-      case 'decision': return <CheckCircle2 size={13} color="#10b981" />;
-      case 'task': return <CheckSquare size={13} color="#f59e0b" />;
-      case 'question': return <HelpCircle size={13} color="#38bdf8" />;
-      case 'idea': return <Lightbulb size={13} color="#fbbf24" />;
-      case 'summary': return <Brain size={13} color="#a78bfa" />;
-      case 'person': return <User size={13} color="#94a3b8" />;
-      default: return <FileText size={13} color="#94a3b8" />;
+      case 'decision': return <CheckCircle2 size={13} color="#ffffff" />;
+      case 'task': return <CheckSquare size={13} color="#ffffff" />;
+      case 'question': return <HelpCircle size={13} color="#d4d4d8" />;
+      case 'idea': return <Lightbulb size={13} color="#d4d4d8" />;
+      case 'summary': return <Brain size={13} color="#ffffff" />;
+      case 'person': return <User size={13} color="#a1a1aa" />;
+      default: return <FileText size={13} color="#a1a1aa" />;
     }
   };
 
@@ -148,8 +148,8 @@ export const SearchAndAssistantView: React.FC<SearchAndAssistantViewProps> = ({
           onClick={() => setActiveMode('assistant')}
           id="btn-mode-assistant"
         >
-          <Sparkles size={14} />
-          <span>Ask Assistant</span>
+          <Bot size={14} />
+          <span>Assistant</span>
         </button>
       </div>
 
@@ -301,11 +301,11 @@ export const SearchAndAssistantView: React.FC<SearchAndAssistantViewProps> = ({
             {chatMessages.length === 0 ? (
               <div className="assistant-welcome-card">
                 <div className="welcome-avatar-circle">
-                  <Sparkles size={24} color="#f4f4f6" />
+                  <Bot size={22} color="#ffffff" />
                 </div>
-                <h3>Ask Your Memory</h3>
+                <h3>Memory Assistant</h3>
                 <p>
-                  I answer questions using information from your recorded sessions, meetings, and notes.
+                  Ask questions across all your transcribed conversations, meetings, and notes.
                 </p>
 
                 <div className="starter-questions-grid">

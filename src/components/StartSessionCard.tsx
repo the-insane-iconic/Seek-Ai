@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, Radio, Shield, ChevronRight } from 'lucide-react';
+import { Mic, Shield, ChevronRight } from 'lucide-react';
 import { formatDuration } from '../models/session';
 
 interface StartSessionCardProps {
@@ -21,10 +21,10 @@ export const StartSessionCard: React.FC<StartSessionCardProps> = ({
     <section className="hero-action-section">
       <div className="hero-card-inner">
         <div className="hero-text-block">
-          <span className="hero-eyebrow">Personal Audio Intelligence</span>
-          <h2 className="hero-title">Capture Everything Meaningful</h2>
+          <span className="hero-eyebrow">Local Audio System</span>
+          <h2 className="hero-title">Audio Notes & Transcription</h2>
           <p className="hero-desc">
-            Record meetings, lectures, and daily conversations into structured, searchable memories.
+            Record meetings, interviews, or lectures. Audio is indexed on-device into searchable text, speakers, and action items.
           </p>
         </div>
 
@@ -36,11 +36,10 @@ export const StartSessionCard: React.FC<StartSessionCardProps> = ({
               id="btn-active-session"
               aria-label="View Active Recording"
             >
-              <div className="record-pulse-ring" />
-              <Radio size={22} className="record-icon" />
+              <span className="record-live-dot" />
               <div className="recording-info-col">
                 <span className="recording-status-title">
-                  {isPaused ? 'Recording Paused' : 'Listening & Recording'}
+                  {isPaused ? 'Recording Paused' : 'Live Recording'}
                 </span>
                 <span className="recording-timer-text">{formatDuration(elapsedMs)}</span>
               </div>
@@ -55,16 +54,16 @@ export const StartSessionCard: React.FC<StartSessionCardProps> = ({
               id="btn-start-session"
             >
               <div className="record-circle-icon">
-                <Mic size={22} />
+                <Mic size={18} />
               </div>
-              <span>Start Memory Session</span>
+              <span>Start Recording</span>
             </button>
           </div>
         )}
 
         <div className="hero-privacy-note">
-          <Shield size={12} color="#71717a" />
-          <span>On-device processing • Complete privacy</span>
+          <Shield size={13} />
+          <span>Local storage only • Zero external telemetry</span>
         </div>
       </div>
     </section>

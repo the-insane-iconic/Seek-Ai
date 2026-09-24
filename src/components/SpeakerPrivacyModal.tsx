@@ -82,7 +82,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="modal-icon-badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8' }}>
+            <div className="modal-icon-badge" style={{ background: '#27272a', color: '#ffffff' }}>
               <ShieldCheck size={18} />
             </div>
             <div>
@@ -101,7 +101,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
 
         {/* Privacy Banner */}
         <div className="privacy-card-banner" style={{ marginTop: '14px' }}>
-          <Lock size={15} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Lock size={15} color="#ffffff" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5 }}>
             <strong>Your Voice Identity Stays Private.</strong>
             <p style={{ margin: '2px 0 0 0', color: '#94a3b8' }}>

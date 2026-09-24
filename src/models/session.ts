@@ -409,14 +409,14 @@ export function generateDefaultSessionTitle(timestamp: number): string {
 }
 
 export const SPEAKER_PALETTE = [
-  '#38bdf8', // Sky
-  '#a855f7', // Purple
-  '#34d399', // Emerald
-  '#f59e0b', // Amber
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#6366f1', // Indigo
-  '#10b981'  // Teal
+  '#ffffff', // Pure White
+  '#e4e4e7', // Zinc 200
+  '#d4d4d8', // Zinc 300
+  '#a1a1aa', // Zinc 400
+  '#71717a', // Zinc 500
+  '#cbd5e1', // Slate 300
+  '#94a3b8', // Slate 400
+  '#f4f4f5'  // Zinc 100
 ];
 
 export function getSpeakerColor(index: number): string {

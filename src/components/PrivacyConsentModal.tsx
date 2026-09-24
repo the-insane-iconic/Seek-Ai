@@ -84,20 +84,20 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '12px 14px',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    background: isSelected ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
-                    transition: 'all 0.2s ease'
+                    background: isSelected ? '#27272a' : '#18181b',
+                    border: `1px solid ${isSelected ? '#ffffff' : 'var(--border-subtle)'}`,
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {p.isLocal ? <Cpu size={18} color="#34d399" /> : <Cloud size={18} color="#818cf8" />}
+                    {p.isLocal ? <Cpu size={18} color="#ffffff" /> : <Cloud size={18} color="#ffffff" />}
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>
                         {p.name}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
                         {p.isLocal ? '100% on-device simulation, offline capable' : 'High-precision Whisper proxy'}
                       </div>
                     </div>
@@ -107,7 +107,7 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
                     name="transcriptionProvider"
                     checked={isSelected}
                     onChange={() => setSelectedProvider(p.id)}
-                    style={{ accentColor: '#6366f1', cursor: 'pointer' }}
+                    style={{ accentColor: '#ffffff', cursor: 'pointer' }}
                   />
                 </div>
               );

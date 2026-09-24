@@ -49,23 +49,18 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
     }
 
     if (isPaused) {
-      // Paused pattern (amber/muted)
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.35)';
+      // Paused pattern: calm muted gray bars
+      ctx.fillStyle = '#52525b';
       for (let i = 0; i < barCount; i++) {
         const x = i * (barWidth + spacing);
-        const wave = Math.sin(i * 0.4) * 8 + 12;
+        const wave = Math.sin(i * 0.4) * 8 + 10;
         ctx.fillRect(x, centerY - wave / 2, barWidth, wave);
       }
       return;
     }
 
-    // Active live audio bars with electric violet / cyan gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#ef4444');
-    gradient.addColorStop(0.5, '#6366f1');
-    gradient.addColorStop(1, '#06b6d4');
-
-    ctx.fillStyle = gradient;
+    // Active live audio bars: high contrast crisp white
+    ctx.fillStyle = '#ffffff';
 
     for (let i = 0; i < barCount; i++) {
       let amp = 0.1;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Edit3, Check, Trash2, Download, Copy, Sparkles, 
+  X, Edit3, Check, Trash2, Download, Copy, 
   RotateCcw, AlertTriangle, Loader2, ArrowRight, CheckCircle2,
   Brain, FileText, Settings2, Users, ShieldCheck, Tag, ChevronDown
 } from 'lucide-react';
@@ -413,14 +413,14 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               <div className="transcribe-cta-banner">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="transcribe-cta-icon">
-                    <Sparkles size={20} color="#818cf8" />
+                    <FileText size={18} color="#ffffff" />
                   </div>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
                       Transcribe to Structure Memory
                     </h4>
-                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                      First transcribe spoken audio into text so AI can extract decisions, tasks, and topics.
+                    <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '2px' }}>
+                      Convert spoken audio into searchable text, speakers, and action items.
                     </p>
                   </div>
                 </div>
@@ -429,24 +429,24 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   onClick={() => setPrivacyModalOpen(true)}
                   id="btn-transcribe-first"
                 >
-                  <span>Transcribe First</span>
-                  <ArrowRight size={15} />
+                  <span>Transcribe Audio</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             )}
 
             {/* If transcribed but not extracted yet */}
             {isTranscribeCompleted && !hasStructuredMemory && (
-              <div className="transcribe-cta-banner" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(99, 102, 241, 0.12) 100%)' }}>
+              <div className="transcribe-cta-banner">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="transcribe-cta-icon" style={{ background: 'rgba(16, 185, 129, 0.2)' }}>
-                    <Brain size={20} color="#34d399" />
+                  <div className="transcribe-cta-icon">
+                    <Brain size={18} color="#ffffff" />
                   </div>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>
                       Extract Structured Memory
                     </h4>
-                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                    <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '2px' }}>
                       Analyze transcript to identify tasks, decisions, people, topics, and deadlines.
                     </p>
                   </div>
@@ -457,7 +457,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   disabled={isExtractingMemory}
                   id="btn-extract-structured-memory"
                 >
-                  <Sparkles size={15} className={isExtractingMemory ? 'spin-icon' : ''} />
+                  <Brain size={14} className={isExtractingMemory ? 'spin-icon' : ''} />
                   <span>{isExtractingMemory ? 'Extracting...' : 'Extract Memory'}</span>
                 </button>
               </div>
@@ -525,8 +525,8 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               </div>
             ) : (
               <div className="transcript-empty-placeholder">
-                <Sparkles size={36} color="#6366f1" />
-                <h3>No Transcript Yet</h3>
+                <FileText size={32} color="#71717a" />
+                <h3>No Transcript Available</h3>
                 <p>
                   Transcribe this session to review spoken words, jump to specific moments in audio, and identify speakers.
                 </p>
@@ -536,7 +536,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   onClick={() => setPrivacyModalOpen(true)}
                   id="btn-tab-transcribe"
                 >
-                  <Sparkles size={16} />
+                  <FileText size={14} />
                   <span>Start Transcription</span>
                 </button>
               </div>

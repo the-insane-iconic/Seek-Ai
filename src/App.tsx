@@ -57,7 +57,6 @@ export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // UI View Modes
-  const [isFullWidth, setIsFullWidth] = useState(false);
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState(false);
 
   // Quick Playback State for Session Cards
@@ -529,15 +528,14 @@ export const App: React.FC = () => {
   const isPaused = recordingState === 'paused';
 
   return (
-    <div className={`app-container ${isFullWidth ? 'full-width-mode' : ''}`}>
+    <div className="app-container">
       {/* Clean Minimal App Header */}
       <Header
         isRecording={isRecordingActive}
         totalStorageBytes={totalStorageBytes}
         sessionCount={sessions.length}
-        isFullWidth={isFullWidth}
-        onToggleFullWidth={() => setIsFullWidth(!isFullWidth)}
-        onQuickSearchClick={() => setActiveNavTab('search')}
+        activeNavTab={activeNavTab}
+        onNavTabChange={setActiveNavTab}
       />
 
       {/* Main Tabbed Content Area */}
