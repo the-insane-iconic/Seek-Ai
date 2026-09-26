@@ -151,7 +151,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="phase-tag">AI STRUCTURED MEMORY</span>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Engine: {memory.modelUsed}
             </span>
           </div>
@@ -169,11 +169,11 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
 
         {summary && (
           <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.5 }}>
               {summary.oneLiner}
             </p>
             {summary.keyTakeaways && summary.keyTakeaways.length > 0 && (
-              <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#cbd5e1' }}>
+              <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                 {summary.keyTakeaways.map((point, idx) => (
                   <li key={idx}>{point}</li>
                 ))}
@@ -188,7 +188,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Tag size={14} color="#ffffff" />
+              <Tag size={14} color="var(--text-main)" />
               <span className="memory-section-title">Topics</span>
             </div>
             <button
@@ -222,7 +222,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
       <div className="memory-section-box">
         <div className="memory-section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CheckSquare size={15} color="#ffffff" />
+            <CheckSquare size={15} color="var(--text-main)" />
             <span className="memory-section-title">Tasks & Action Items</span>
             <span className="section-badge-counter">({tasks.length})</span>
           </div>
@@ -249,9 +249,9 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                   aria-label="Toggle task completion"
                 >
                   {task.completed ? (
-                    <CheckSquare size={18} color="#ffffff" />
+                    <CheckSquare size={18} color="var(--text-main)" />
                   ) : (
-                    <Square size={18} color="#71717a" />
+                    <Square size={18} color="var(--text-muted)" />
                   )}
                 </button>
 
@@ -319,7 +319,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
       <div className="memory-section-box">
         <div className="memory-section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <CheckCircle2 size={15} color="#ffffff" />
+            <CheckCircle2 size={15} color="var(--text-main)" />
             <span className="memory-section-title">Key Decisions</span>
             <span className="section-badge-counter">({decisions.length})</span>
           </div>
@@ -341,21 +341,21 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
               <div key={dec.id} className="memory-card-item">
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
                       {dec.decision}
                     </span>
                     {dec.isUserEdited && <span className="edited-indicator-tag">Edited</span>}
                   </div>
                   {dec.madeBy && dec.madeBy.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Made by:</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Made by:</span>
                       {dec.madeBy.map((p, pIdx) => (
                         <span key={pIdx} className="person-tag-pill">{p}</span>
                       ))}
                     </div>
                   )}
                   {dec.context && (
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>{dec.context}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{dec.context}</span>
                   )}
                   {dec.sourceTimestampMs !== undefined && (
                     <button
@@ -396,7 +396,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={14} color="#ffffff" />
+              <Bookmark size={14} color="var(--text-main)" />
               <span className="memory-section-title">Commitments</span>
               <span className="section-badge-counter">({commitments.length})</span>
             </div>
@@ -413,11 +413,11 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
             {commitments.map((comm) => (
               <div key={comm.id} className="memory-card-item">
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-main)' }}>
                     "{comm.commitment}"
                   </span>
                   {comm.fromPerson && (
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>By: {comm.fromPerson}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>By: {comm.fromPerson}</span>
                   )}
                   {comm.sourceTimestampMs !== undefined && (
                     <button
@@ -450,7 +450,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Users size={14} color="#ffffff" />
+              <Users size={14} color="var(--text-main)" />
               <span className="memory-section-title">People Mentioned</span>
               <span className="section-badge-counter">({people.length})</span>
             </div>
@@ -470,10 +470,10 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
                   {p.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
                     {p.name}
                   </span>
-                  <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                     {p.role || `${p.mentionCount} mentions`}
                   </span>
                 </div>
@@ -508,18 +508,18 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
           <div className="memory-section-box">
             <div className="memory-section-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <HelpCircle size={14} color="#ffffff" />
+                <HelpCircle size={14} color="var(--text-main)" />
                 <span className="memory-section-title">Questions Raised</span>
               </div>
             </div>
             <div className="memory-items-list">
               {questions.map((q) => (
                 <div key={q.id} className="memory-mini-card">
-                  <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 500 }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 500 }}>
                     "{q.question}"
                   </span>
                   {q.askedBy && (
-                    <span style={{ fontSize: '10px', color: '#a1a1aa', fontWeight: 600 }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
                       Asked by: {q.askedBy}
                     </span>
                   )}
@@ -544,18 +544,18 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
           <div className="memory-section-box">
             <div className="memory-section-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Lightbulb size={14} color="#ffffff" />
+                <Lightbulb size={14} color="var(--text-main)" />
                 <span className="memory-section-title">Ideas & Insights</span>
               </div>
             </div>
             <div className="memory-items-list">
               {ideas.map((idea) => (
                 <div key={idea.id} className="memory-mini-card">
-                  <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 500 }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 500 }}>
                     {idea.idea}
                   </span>
                   {idea.proposedBy && (
-                    <span style={{ fontSize: '10px', color: '#a1a1aa', fontWeight: 600 }}>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
                       Proposed by: {idea.proposedBy}
                     </span>
                   )}
@@ -581,16 +581,16 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CalendarDays size={14} color="#ffffff" />
+              <CalendarDays size={14} color="var(--text-main)" />
               <span className="memory-section-title">Events & Deadlines</span>
             </div>
           </div>
           <div className="memory-items-list">
             {events.map((ev) => (
-              <div key={ev.id} className="memory-mini-card" style={{ borderLeft: '3px solid #ffffff' }}>
+              <div key={ev.id} className="memory-mini-card" style={{ borderLeft: '3px solid var(--border-strong)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>{ev.title}</span>
-                  {ev.dateOrTime && <span style={{ fontSize: '11px', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{ev.dateOrTime}</span>}
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>{ev.title}</span>
+                  {ev.dateOrTime && <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{ev.dateOrTime}</span>}
                 </div>
                 {ev.sourceTimestampMs !== undefined && (
                   <button className="timestamp-jump-btn" onClick={() => onSeekToMs(ev.sourceTimestampMs!)}>
@@ -603,8 +603,8 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
             {dates.map((d) => (
               <div key={d.id} className="memory-mini-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', color: '#f8fafc' }}>{d.description}</span>
-                  <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: 600 }}>{d.date}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-main)' }}>{d.description}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{d.date}</span>
                 </div>
               </div>
             ))}
@@ -617,7 +617,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={14} color="#ffffff" />
+              <Bookmark size={14} color="var(--text-main)" />
               <span className="memory-section-title">Key Points</span>
               <span className="section-badge-counter">({keyPoints.length})</span>
             </div>
@@ -625,7 +625,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
           <div className="memory-items-list">
             {keyPoints.map((kp) => (
               <div key={kp.id} className="memory-mini-card">
-                <span style={{ fontSize: '12px', color: '#cbd5e1' }}>• {kp.point}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {kp.point}</span>
                 {kp.sourceTimestampMs !== undefined && (
                   <button className="timestamp-jump-btn" onClick={() => onSeekToMs(kp.sourceTimestampMs!)}>
                     <Clock size={10} />
@@ -643,14 +643,14 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
         <div className="memory-section-box">
           <div className="memory-section-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={14} color="#ffffff" />
+              <Bookmark size={14} color="var(--text-main)" />
               <span className="memory-section-title">Important Facts</span>
             </div>
           </div>
           <div className="memory-items-list">
             {facts.map((fact) => (
               <div key={fact.id} className="memory-mini-card">
-                <span style={{ fontSize: '12px', color: '#cbd5e1' }}>• {fact.fact}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>• {fact.fact}</span>
                 {fact.sourceTimestampMs !== undefined && (
                   <button className="timestamp-jump-btn" onClick={() => onSeekToMs(fact.sourceTimestampMs!)}>
                     <Clock size={10} />
@@ -667,12 +667,12 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
       {editingModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 120 }}>
           <div className="modal-sheet" style={{ maxWidth: '440px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
               {editingModal.title}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
                 Description / Title
               </label>
               <input
@@ -686,7 +686,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
 
               {(editingModal.category === 'tasks' || editingModal.category === 'people' || editingModal.category === 'decisions') && (
                 <>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
                     {editingModal.category === 'tasks' ? 'Assignee' : editingModal.category === 'people' ? 'Role' : 'Context'}
                   </label>
                   <input
@@ -701,7 +701,7 @@ export const StructuredMemoryView: React.FC<StructuredMemoryViewProps> = ({
 
               {editingModal.category === 'tasks' && (
                 <>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
                     Deadline / Due Date
                   </label>
                   <input

@@ -275,7 +275,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', color: '#f8fafc', wordBreak: 'break-word' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', color: 'var(--text-main)', wordBreak: 'break-word' }}>
               {session.title}
             </h2>
             <button
@@ -362,12 +362,12 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <div className="transcription-progress-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Loader2 size={16} className="spin-icon" color="#818cf8" />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+                <Loader2 size={16} className="spin-icon" color="var(--accent-primary)" />
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                   {transcriptionProgress?.message || 'Transcribing recording...'}
                 </span>
               </div>
-              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#a5b4fc', fontWeight: 600 }}>
+              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontWeight: 600 }}>
                 {transcriptionProgress?.percent || 30}%
               </span>
             </div>
@@ -382,14 +382,14 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
         {/* Transcription Failed Banner */}
         {isTranscribeFailed && (
-          <div className="transcription-failed-card">
+          <div className="transcription-failed-card" style={{ background: '#fff1f2', border: '1px solid #fecdd3' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-              <AlertTriangle size={18} color="#ef4444" style={{ marginTop: '2px' }} />
+              <AlertTriangle size={18} color="var(--record-red)" style={{ marginTop: '2px' }} />
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: '13px', color: '#fca5a5' }}>
+                <strong style={{ fontSize: '13px', color: 'var(--record-red)' }}>
                   Transcription Failed
                 </strong>
-                <p style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {transcript?.error || 'Speech-to-text encountered an issue while processing this session.'}
                 </p>
                 <button
@@ -467,12 +467,12 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             {isExtractingMemory && (
               <div className="transcription-progress-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Loader2 size={18} className="spin-icon" color="#818cf8" />
+                  <Loader2 size={18} className="spin-icon" color="var(--accent-primary)" />
                   <div>
-                    <strong style={{ fontSize: '13px', color: '#f8fafc' }}>
+                    <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
                       Extracting Structured Memory...
                     </strong>
-                    <p style={{ fontSize: '11px', color: '#a5b4fc', marginTop: '2px' }}>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Identifying tasks, key decisions, people, dates, and ideas...
                     </p>
                   </div>
@@ -519,13 +519,13 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               />
             ) : isTranscribing ? (
               <div className="transcript-empty-placeholder">
-                <Loader2 size={32} className="spin-icon" color="#818cf8" />
+                <Loader2 size={32} className="spin-icon" color="var(--accent-primary)" />
                 <h3>Generating Transcript & Diarizing...</h3>
                 <p>Speech-to-text and speaker identification engines are processing dialogue.</p>
               </div>
             ) : (
               <div className="transcript-empty-placeholder">
-                <FileText size={32} color="#71717a" />
+                <FileText size={32} color="var(--text-muted)" />
                 <h3>No Transcript Available</h3>
                 <p>
                   Transcribe this session to review spoken words, jump to specific moments in audio, and identify speakers.
@@ -549,10 +549,10 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                   Speakers ({sessionSpeakers.length})
                 </h3>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                   Distinguish conversation turns, map identities, and assign "You".
                 </span>
               </div>
@@ -568,7 +568,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
             {sessionSpeakers.length === 0 ? (
               <div className="transcript-empty-placeholder" style={{ padding: '36px 16px' }}>
-                <Users size={32} color="#6366f1" />
+                <Users size={32} color="var(--text-muted)" />
                 <h3>No Speakers Diarized Yet</h3>
                 <p>
                   Transcribe this session to separate speakers, assign turns, and identify who said what.
@@ -600,7 +600,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                             disabled={speakerRenameIsUser}
                             autoFocus
                           />
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                             <input
                               type="checkbox"
                               checked={speakerRenameIsUser}
@@ -628,7 +628,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                       ) : (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
                               {displayName}
                             </span>
                             {sp.isUser && <span className="is-user-tag">YOU</span>}
@@ -638,7 +638,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                               </span>
                             )}
                           </div>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                             Label: {sp.label} • {sp.name ? 'User Verified' : 'Tentative assignment'}
                           </span>
                         </div>
@@ -697,14 +697,14 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               </div>
               <div className="meta-field" style={{ gridColumn: 'span 2' }}>
                 <span className="meta-field-label">Storage Reference</span>
-                <span className="meta-field-value" style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <span className="meta-field-value" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                   {session.audioStorageKey}
                 </span>
               </div>
               <div className="meta-field" style={{ gridColumn: 'span 2' }}>
                 <span className="meta-field-label">Session ID</span>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                  <span className="meta-field-value" style={{ fontSize: '11px', color: '#a5b4fc' }}>
+                  <span className="meta-field-value" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                     {session.id}
                   </span>
                   <button
@@ -722,18 +722,18 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             {/* Actions Row */}
             {isDeleting ? (
               <div style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: '#fff1f2',
+                border: '1px solid #fecdd3',
                 borderRadius: '12px',
                 padding: '14px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px'
               }}>
-                <p style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 600 }}>
+                <p style={{ fontSize: '13px', color: 'var(--record-red)', fontWeight: 600 }}>
                   Permanently delete this memory session, audio recording, and transcript?
                 </p>
-                <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   This cannot be undone. All data will be permanently purged from this device.
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>

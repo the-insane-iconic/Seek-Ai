@@ -26,17 +26,17 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
         </div>
 
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#f8fafc' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)' }}>
             Modular Memory Architecture
           </h2>
-          <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px', lineHeight: 1.4 }}>
-            Built with strict layer decoupling so Phase 2 AI features can be plugged in seamlessly without rewriting the mobile foundation.
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
+            Built with strict layer decoupling so AI features plug in seamlessly while keeping local control.
           </p>
         </div>
 
         {/* Pipeline Evolution Diagram */}
         <div style={{
-          background: 'rgba(0,0,0,0.35)',
+          background: 'var(--bg-secondary)',
           border: '1px solid var(--border-subtle)',
           borderRadius: '12px',
           padding: '14px',
@@ -44,7 +44,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
           flexDirection: 'column',
           gap: '12px'
         }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#a5b4fc', letterSpacing: '0.5px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
             EVOLUTION PIPELINE
           </span>
 
@@ -54,18 +54,19 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 12px',
+              padding: '10px 12px',
               borderRadius: '8px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.35)'
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <Mic size={16} color="#34d399" />
+              <Mic size={16} color="var(--text-main)" />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#6ee7b7' }}>1. User Memory Session</span>
-                  <span style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.3)', padding: '1px 6px', borderRadius: '4px', color: '#a7f3d0' }}>ACTIVE (Phase 1)</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>1. User Memory Session</span>
+                  <span style={{ fontSize: '10px', background: 'var(--bg-secondary)', padding: '1px 6px', borderRadius: '4px', color: 'var(--text-secondary)', fontWeight: 600 }}>ACTIVE</span>
                 </div>
-                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Explicit start/stop recording, precision timing, local IndexedDB blob storage.
                 </p>
               </div>
@@ -76,19 +77,20 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 12px',
+              padding: '10px 12px',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)'
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <Cpu size={16} color="#818cf8" />
+              <Cpu size={16} color="var(--text-main)" />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>2. Speech-to-Text & Speakers</span>
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>Phase 2</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>2. Speech-to-Text & Speakers</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Phase 2-4</span>
                 </div>
-                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  Whisper transcription & speaker diarization mapped to <code style={{ color: '#a5b4fc' }}>TranscriptData</code>.
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Whisper transcription & speaker diarization mapped to <code style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>TranscriptData</code>.
                 </p>
               </div>
             </div>
@@ -98,18 +100,19 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 12px',
+              padding: '10px 12px',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)'
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <Sparkles size={16} color="#c084fc" />
+              <Sparkles size={16} color="var(--text-main)" />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>3. Structured AI Memory</span>
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>Phase 2</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>3. Structured AI Memory</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Phase 3</span>
                 </div>
-                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Action items, key decisions, topics, and contextual summaries.
                 </p>
               </div>
@@ -120,18 +123,19 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 12px',
+              padding: '10px 12px',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)'
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <Search size={16} color="#38bdf8" />
+              <Search size={16} color="var(--text-main)" />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>4. Semantic Search & Assistant</span>
-                  <span style={{ fontSize: '10px', color: '#64748b' }}>Phase 2</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>4. Semantic Search & Assistant</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Phase 5</span>
                 </div>
-                <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Vector embeddings for natural language queries across past life memories.
                 </p>
               </div>
@@ -144,16 +148,16 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          background: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.25)',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '8px',
           padding: '10px 14px',
           fontSize: '12px',
-          color: '#c7d2fe'
+          color: 'var(--text-secondary)'
         }}>
-          <ShieldCheck size={18} color="#818cf8" />
+          <ShieldCheck size={18} color="var(--text-main)" />
           <span>
-            Zero cloud telemetry or AI API calls in Phase 1. 100% on-device IndexedDB storage.
+            Zero cloud telemetry or unwanted tracking. 100% on-device IndexedDB storage.
           </span>
         </div>
 

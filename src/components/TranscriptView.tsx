@@ -117,7 +117,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
       <div className="transcript-header">
         <div className="transcript-title-group">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
               Conversation Dialogue
             </span>
             {transcript.isEdited && (
@@ -127,7 +127,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
               </span>
             )}
           </div>
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             {filteredSegments.length} utterances {speakers.length > 0 && `• ${speakers.length} speakers`} • {transcript.language.toUpperCase()}
           </span>
         </div>
@@ -289,7 +289,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
                           onClick={(e) => handleOpenSpeakerReassign(seg.speakerId || `sp_${idx}`, displayName, e)}
                           title="Click to rename or reassign speaker"
                         >
-                          <span style={{ fontWeight: 700, color: '#f8fafc' }}>{displayName}</span>
+                          <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{displayName}</span>
                           {isUser && <span className="dialogue-you-pill">YOU</span>}
                           {seg.confidence && seg.confidence < 0.85 && (
                             <span className="dialogue-uncertain-pill" title="Estimated turn">Uncertain</span>
@@ -320,10 +320,10 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
       {reassignSpeakerForId && (
         <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 140 }}>
           <div className="modal-sheet" style={{ maxWidth: '380px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
               Identify Speaker
             </h3>
-            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
               Assign a name to this speaker across all turns in this session.
             </p>
 
@@ -341,7 +341,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
                 />
               </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={customIsUser}
@@ -352,7 +352,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
 
               {speakers.length > 0 && (
                 <div style={{ marginTop: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Or select known speaker:</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Or select known speaker:</span>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                     {speakers.map(sp => (
                       <button

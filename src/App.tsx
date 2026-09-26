@@ -27,6 +27,9 @@ import { SpeakerPrivacyModal } from './components/SpeakerPrivacyModal';
 import { BottomNav, AppNavTab } from './components/BottomNav';
 import { SearchAndAssistantView } from './components/SearchAndAssistantView';
 import { SettingsView } from './components/SettingsView';
+import { OnboardingModal } from './components/OnboardingModal';
+
+export const ONBOARDING_STORAGE_KEY = 'memory_onboarding_seen';
 
 export const App: React.FC = () => {
   // Session State
@@ -58,6 +61,7 @@ export const App: React.FC = () => {
 
   // UI View Modes
   const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Quick Playback State for Session Cards
   const [quickPlayingId, setQuickPlayingId] = useState<string | null>(null);
@@ -94,6 +98,16 @@ export const App: React.FC = () => {
   useEffect(() => {
     refreshSessions();
 
+    // Check first-time visit for onboarding tour
+    try {
+      const hasSeenTour = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!hasSeenTour) {
+        setIsOnboardingOpen(true);
+      }
+    } catch (e) {
+      console.warn('Could not read onboarding status from localStorage:', e);
+    }
+
     // Subscribe to RecordingService events
     const unsubState = recordingService.onStateChange((state) => {
       setRecordingState(state);
@@ -124,6 +138,19 @@ export const App: React.FC = () => {
       audioFileManager.cleanupAllUrls();
     };
   }, []);
+
+  const handleCompleteOnboarding = () => {
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch (e) {
+      console.warn('Could not save onboarding status to localStorage:', e);
+    }
+    setIsOnboardingOpen(false);
+  };
+
+  const handleOpenGuide = () => {
+    setIsOnboardingOpen(true);
+  };
 
   // Quick audio player cleanup
   useEffect(() => {
@@ -536,6 +563,7 @@ export const App: React.FC = () => {
         sessionCount={sessions.length}
         activeNavTab={activeNavTab}
         onNavTabChange={setActiveNavTab}
+        onOpenGuide={handleOpenGuide}
       />
 
       {/* Main Tabbed Content Area */}
@@ -617,6 +645,7 @@ export const App: React.FC = () => {
               sessions={sessions}
               totalStorageBytes={totalStorageBytes}
               onRefreshData={refreshSessions}
+              onOpenGuide={handleOpenGuide}
             />
           </div>
         )}
@@ -683,6 +712,13 @@ export const App: React.FC = () => {
         isOpen={globalSpeakerPrivacyOpen}
         onClose={() => setGlobalSpeakerPrivacyOpen(false)}
         onSpeakersUpdated={refreshSessions}
+      />
+
+      {/* First-time Onboarding & Feature Introduction Tour */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={handleCompleteOnboarding}
+        onComplete={handleCompleteOnboarding}
       />
     </div>
   );

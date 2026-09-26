@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Trash2, Edit3, 
-  RotateCcw, Check, X, Users, Database, AlertTriangle 
+  RotateCcw, Check, X, Users, Database, AlertTriangle,
+  HelpCircle, Sparkles
 } from 'lucide-react';
 import { SpeakerProfile, formatFileSize, MemorySession } from '../models/session';
 import { databaseService } from '../services/storage/database';
@@ -11,12 +12,14 @@ interface SettingsViewProps {
   sessions: MemorySession[];
   totalStorageBytes: number;
   onRefreshData: () => Promise<any>;
+  onOpenGuide: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   sessions,
   totalStorageBytes,
   onRefreshData,
+  onOpenGuide,
 }) => {
   const [speakers, setSpeakers] = useState<SpeakerProfile[]>([]);
   const [vectorStats, setVectorStats] = useState<{ totalVectors: number; indexedSessions: number }>({ totalVectors: 0, indexedSessions: 0 });
@@ -259,7 +262,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </section>
 
-      {/* 3. Privacy & Data Wipe */}
+      {/* 3. Product Tour & Capabilities Guide */}
+      <section className="settings-card">
+        <div className="settings-card-header">
+          <HelpCircle size={16} color="#71717a" />
+          <h3>Product Tour & Onboarding</h3>
+        </div>
+        <p className="settings-card-desc">
+          Review the introduction and discover the core capabilities of Seek AI anytime.
+        </p>
+        <div>
+          <button 
+            type="button"
+            className="settings-action-btn"
+            onClick={onOpenGuide}
+          >
+            <Sparkles size={13} />
+            <span>Replay Welcome Tour</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 4. Privacy & Data Wipe */}
       <section className="settings-card danger-zone">
         <div className="settings-card-header">
           <ShieldCheck size={16} color="#71717a" />

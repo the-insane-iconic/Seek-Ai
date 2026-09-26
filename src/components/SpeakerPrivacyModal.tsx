@@ -82,14 +82,14 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="modal-icon-badge" style={{ background: '#27272a', color: '#ffffff' }}>
+            <div className="modal-icon-badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-subtle)' }}>
               <ShieldCheck size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 Speaker & Voice Privacy
               </h2>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 On-device voice profiles and identity control
               </span>
             </div>
@@ -101,10 +101,10 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
 
         {/* Privacy Banner */}
         <div className="privacy-card-banner" style={{ marginTop: '14px' }}>
-          <Lock size={15} color="#ffffff" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5 }}>
-            <strong>Your Voice Identity Stays Private.</strong>
-            <p style={{ margin: '2px 0 0 0', color: '#94a3b8' }}>
+          <Lock size={15} color="var(--text-main)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--text-main)' }}>Your Voice Identity Stays Private.</strong>
+            <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)' }}>
               Diarization mappings and speaker names are stored exclusively on your device in local IndexedDB. 
               You can correct, rename, or permanently delete any profile at any time.
             </p>
@@ -114,14 +114,14 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
         {/* Speakers List */}
         <div style={{ flex: 1, overflowY: 'auto', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
               SAVED PROFILES ({speakers.length})
             </span>
             {speakers.length > 0 && !confirmWipe && (
               <button
                 className="section-add-btn"
                 onClick={() => setConfirmWipe(true)}
-                style={{ color: '#ef4444' }}
+                style={{ color: 'var(--record-red)' }}
                 title="Delete all stored speaker profiles"
               >
                 <Trash2 size={12} />
@@ -131,9 +131,9 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
           </div>
 
           {confirmWipe && (
-            <div className="privacy-wipe-confirm-box">
-              <AlertTriangle size={14} color="#ef4444" />
-              <span style={{ fontSize: '12px', color: '#fca5a5', flex: 1 }}>
+            <div className="privacy-wipe-confirm-box" style={{ background: '#fff1f2', border: '1px solid #fecdd3' }}>
+              <AlertTriangle size={14} color="var(--record-red)" />
+              <span style={{ fontSize: '12px', color: 'var(--record-red)', flex: 1, fontWeight: 600 }}>
                 Permanently erase all voice profiles?
               </span>
               <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setConfirmWipe(false)}>
@@ -146,7 +146,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
           )}
 
           {isLoading ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
               Loading speaker profiles...
             </div>
           ) : speakers.length === 0 ? (
@@ -162,7 +162,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
                 <div key={sp.id} className="speaker-profile-card">
                   <div 
                     className="person-avatar" 
-                    style={{ background: sp.avatarColor || '#38bdf8' }}
+                    style={{ background: sp.avatarColor || 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-subtle)' }}
                   >
                     {displayName.charAt(0).toUpperCase()}
                   </div>
@@ -178,7 +178,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
                         style={{ padding: '6px 10px', fontSize: '13px' }}
                         autoFocus
                       />
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#cbd5e1', cursor: 'pointer' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                         <input
                           type="checkbox"
                           checked={editIsUser}
@@ -198,7 +198,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
                   ) : (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
                           {displayName}
                         </span>
                         {sp.isUser && (
@@ -210,7 +210,7 @@ export const SpeakerPrivacyModal: React.FC<SpeakerPrivacyModalProps> = ({
                           </span>
                         )}
                       </div>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         Label: {sp.label} • {sp.associatedSessionCount || 1} sessions
                       </span>
                     </div>

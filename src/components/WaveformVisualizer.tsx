@@ -40,7 +40,7 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
 
     if (!isActive) {
       // Draw quiet baseline
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
       for (let i = 0; i < barCount; i++) {
         const x = i * (barWidth + spacing);
         ctx.fillRect(x, centerY - 2, barWidth, 4);
@@ -50,7 +50,7 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
 
     if (isPaused) {
       // Paused pattern: calm muted gray bars
-      ctx.fillStyle = '#52525b';
+      ctx.fillStyle = '#9ca3af';
       for (let i = 0; i < barCount; i++) {
         const x = i * (barWidth + spacing);
         const wave = Math.sin(i * 0.4) * 8 + 10;
@@ -59,8 +59,8 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
       return;
     }
 
-    // Active live audio bars: high contrast crisp white
-    ctx.fillStyle = '#ffffff';
+    // Active live audio bars: crisp charcoal / ink-black
+    ctx.fillStyle = '#111827';
 
     for (let i = 0; i < barCount; i++) {
       let amp = 0.1;

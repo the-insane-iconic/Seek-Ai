@@ -36,31 +36,31 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
         </div>
 
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.3px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.3px' }}>
             Transcribe Memory Session
           </h2>
-          <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px', lineHeight: 1.4 }}>
-            For session: <strong style={{ color: '#ffffff' }}>{sessionTitle}</strong>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
+            For session: <strong style={{ color: 'var(--text-main)' }}>{sessionTitle}</strong>
           </p>
         </div>
 
         {/* Privacy Notice Card */}
         <div style={{
-          background: 'rgba(16, 185, 129, 0.08)',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '12px',
           padding: '14px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
           fontSize: '12px',
-          color: '#a7f3d0'
+          color: 'var(--text-secondary)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#6ee7b7' }}>
-            <ShieldCheck size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--text-main)' }}>
+            <ShieldCheck size={16} color="var(--text-main)" />
             <span>Your Data Guarantees</span>
           </div>
-          <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px', color: '#cbd5e1' }}>
+          <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-secondary)' }}>
             <li>Audio is processed only when explicitly approved by you.</li>
             <li>The original recording permanently remains in your device's local storage.</li>
             <li>No audio is permanently stored on external servers.</li>
@@ -69,7 +69,7 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
 
         {/* Engine Selection */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Choose Transcription Engine
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -86,18 +86,19 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
                     padding: '12px 14px',
                     borderRadius: '8px',
                     cursor: 'pointer',
-                    background: isSelected ? '#27272a' : '#18181b',
-                    border: `1px solid ${isSelected ? '#ffffff' : 'var(--border-subtle)'}`,
+                    background: isSelected ? 'var(--bg-secondary)' : 'var(--bg-card)',
+                    border: `1px solid ${isSelected ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
+                    boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {p.isLocal ? <Cpu size={18} color="#ffffff" /> : <Cloud size={18} color="#ffffff" />}
+                    {p.isLocal ? <Cpu size={18} color="var(--text-main)" /> : <Cloud size={18} color="var(--text-main)" />}
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
                         {p.name}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         {p.isLocal ? '100% on-device simulation, offline capable' : 'High-precision Whisper proxy'}
                       </div>
                     </div>
@@ -107,7 +108,7 @@ export const PrivacyConsentModal: React.FC<PrivacyConsentModalProps> = ({
                     name="transcriptionProvider"
                     checked={isSelected}
                     onChange={() => setSelectedProvider(p.id)}
-                    style={{ accentColor: '#ffffff', cursor: 'pointer' }}
+                    style={{ accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
                   />
                 </div>
               );

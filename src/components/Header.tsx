@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, HardDrive, Layers, MessageSquare, Settings2 } from 'lucide-react';
+import { Mic, HardDrive, Layers, MessageSquare, Settings2, HelpCircle } from 'lucide-react';
 import { formatFileSize } from '../models/session';
 import { AppNavTab } from './BottomNav';
 
@@ -9,6 +9,7 @@ interface HeaderProps {
   sessionCount: number;
   activeNavTab: AppNavTab;
   onNavTabChange: (tab: AppNavTab) => void;
+  onOpenGuide: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   sessionCount,
   activeNavTab,
   onNavTabChange,
+  onOpenGuide,
 }) => {
   return (
     <header className="app-header">
@@ -65,6 +67,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {/* App Tour & Overview */}
+        <button 
+          type="button" 
+          className="header-guide-btn" 
+          onClick={onOpenGuide}
+          title="App Overview & Feature Tour"
+          aria-label="App Tour"
+        >
+          <HelpCircle size={13} />
+          <span>Tour</span>
+        </button>
+
         {/* Active status indicator */}
         <div className={`status-pill ${isRecording ? 'recording' : ''}`}>
           <span className="status-dot"></span>

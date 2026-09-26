@@ -55,7 +55,7 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
           <div className="recording-timer-big" id="live-timer-display">
             {formatDuration(elapsedMs)}
           </div>
-          <p style={{ fontSize: '13px', color: '#94a3b8' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
             {isPaused ? 'Recording is paused. Tap resume to continue.' : 'Listening to your environment...'}
           </p>
 
@@ -71,19 +71,19 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
         {/* Discard confirmation or regular controls */}
         {confirmDiscard ? (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
             borderRadius: '12px',
             padding: '14px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fca5a5', fontSize: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--record-red)', fontSize: '13px' }}>
               <ShieldAlert size={18} />
               <strong>Discard this session without saving?</strong>
             </div>
-            <p style={{ fontSize: '12px', color: '#cbd5e1' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
               All audio recorded in this session will be permanently deleted.
             </p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -129,9 +129,9 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
               id="btn-stop-session"
             >
               <div className="btn-ctrl-icon stop-save">
-                <Square size={26} color="#ffffff" fill="#ffffff" />
+                <Square size={22} color="#ffffff" fill="#ffffff" />
               </div>
-              <span style={{ color: '#ffffff', fontWeight: 700 }}>Stop & Save</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700 }}>Stop & Save</span>
             </button>
 
             {/* Pause / Resume button */}
@@ -142,10 +142,10 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
                 title="Resume Recording"
                 id="btn-resume-session"
               >
-                <div className="btn-ctrl-icon" style={{ borderColor: 'rgba(16, 185, 129, 0.5)', color: '#34d399' }}>
-                  <Play size={22} fill="#34d399" />
+                <div className="btn-ctrl-icon" style={{ borderColor: 'var(--border-strong)', color: 'var(--text-main)' }}>
+                  <Play size={20} fill="currentColor" />
                 </div>
-                <span style={{ color: '#34d399' }}>Resume</span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Resume</span>
               </button>
             ) : (
               <button
@@ -155,7 +155,7 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
                 id="btn-pause-session"
               >
                 <div className="btn-ctrl-icon">
-                  <Pause size={22} />
+                  <Pause size={20} />
                 </div>
                 <span>Pause</span>
               </button>
@@ -170,9 +170,9 @@ export const ActiveRecordingModal: React.FC<ActiveRecordingModalProps> = ({
           justifyContent: 'center',
           gap: '6px',
           fontSize: '11px',
-          color: '#64748b'
+          color: 'var(--text-muted)'
         }}>
-          <Check size={12} color="#10b981" />
+          <Check size={12} color="var(--text-muted)" />
           <span>Local storage only. No audio data leaves your device.</span>
         </div>
       </div>

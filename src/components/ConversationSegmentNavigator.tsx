@@ -98,8 +98,8 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
     <div className="segment-navigator-container">
       <div className="segment-navigator-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Layers size={14} color="#818cf8" />
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc', letterSpacing: '0.04em' }}>
+          <Layers size={14} color="var(--text-main)" />
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '0.04em' }}>
             CONVERSATION SEGMENTS ({segments.length})
           </span>
         </div>
@@ -217,7 +217,7 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
       {editingSegment && (
         <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 130 }}>
           <div className="modal-sheet" style={{ maxWidth: '420px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
               Edit Conversation Segment
             </h3>
 
@@ -247,7 +247,7 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
                 </select>
               </div>
 
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Span: {formatDuration(editingSegment.startTimeMs)} – {formatDuration(editingSegment.endTimeMs)}
               </div>
             </div>
@@ -273,10 +273,10 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
       {splittingSegment && (
         <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 130 }}>
           <div className="modal-sheet" style={{ maxWidth: '420px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
               Split Conversation Segment
             </h3>
-            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Divide "{splittingSegment.title}" into two distinct conversations.
             </p>
 
@@ -290,13 +290,13 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
                     max={Math.floor(splittingSegment.endTimeMs / 1000) - 1}
                     value={splitTimeSec}
                     onChange={e => setSplitTimeSec(Number(e.target.value))}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, accentColor: 'var(--accent-primary)' }}
                   />
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#38bdf8', minWidth: '48px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', minWidth: '48px' }}>
                     {formatDuration(splitTimeSec * 1000)}
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
                   <span>Start: {formatDuration(splittingSegment.startTimeMs)}</span>
                   <span>End: {formatDuration(splittingSegment.endTimeMs)}</span>
                 </div>
@@ -331,10 +331,10 @@ export const ConversationSegmentNavigator: React.FC<ConversationSegmentNavigator
       {isMerging && (
         <div className="modal-overlay" role="dialog" aria-modal="true" style={{ zIndex: 130 }}>
           <div className="modal-sheet" style={{ maxWidth: '420px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
               Merge Conversation Segments
             </h3>
-            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Combine two adjacent conversation segments into a single conversation.
             </p>
 

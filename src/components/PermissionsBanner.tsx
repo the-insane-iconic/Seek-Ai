@@ -42,14 +42,14 @@ export const PermissionsBanner: React.FC<PermissionsBannerProps> = ({
             <RefreshCw size={12} />
             <span>Try Again</span>
           </button>
-          <button onClick={onDismiss} style={{ background: 'transparent', borderColor: 'transparent', color: '#94a3b8' }}>
+          <button onClick={onDismiss} style={{ background: 'transparent', borderColor: 'transparent', color: 'var(--text-muted)' }}>
             Dismiss
           </button>
         </div>
       </div>
       <button 
         onClick={onDismiss} 
-        style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0 }}
+        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
       >
         <X size={16} />
       </button>
